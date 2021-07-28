@@ -43,9 +43,9 @@ persistence:
       enabled: true
       threshold: 30d
   read:
-    limit: 1000
+    limit: 500
     max-batch-size: 1000000
     retry-after: 600000
-    expected-node-count: 7000
+    expected-node-count: 3000
     cluster-db-pool-size: 24
     work-mem-mb: 2000
