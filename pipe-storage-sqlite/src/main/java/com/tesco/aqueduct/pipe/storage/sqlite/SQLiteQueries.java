@@ -15,7 +15,7 @@ final class SQLiteQueries {
 
     public static final String REINDEX_EVENTS = "REINDEX EVENT;";
 
-    public static final String DROP_TYPES_INDEX = "DROP INDEX IF EXISTS type_idex;";
+    public static final String DROP_TYPES_INDEX = "DROP INDEX IF EXISTS type_idx;";
 
     static final String CREATE_EVENT_TABLE =
         "CREATE TABLE IF NOT EXISTS EVENT( " +
