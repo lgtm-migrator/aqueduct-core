@@ -37,12 +37,12 @@ public class SQLiteStorage implements DistributedStorage {
         createEventTableIfNotExists();
         createOffsetTableIfNotExists();
         createPipeStateTableIfNotExists();
-        addIndexOnTypes();
+        dropIndexOnTypes();
     }
 
-    private void addIndexOnTypes() {
+    private void dropIndexOnTypes() {
         execute(
-            SQLiteQueries.ADD_TYPES_INDEX,
+            SQLiteQueries.DROP_TYPES_INDEX,
             (connection, statement) -> statement.execute()
         );
     }
