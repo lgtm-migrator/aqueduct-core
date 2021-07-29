@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 public class PipeReadController {
 
     private static final PipeLogger LOG = new PipeLogger(LoggerFactory.getLogger(PipeReadController.class));
+    private static final PipeLogger DEBUG_LOGGER = new PipeLogger(LoggerFactory.getLogger("pipe-debug-logger"));
 
     private final Reader reader;
     private final Duration bootstrapThreshold;
@@ -71,8 +72,7 @@ public class PipeReadController {
         logOffsetRequestFromRemoteHost(offset, request);
         final List<String> types = flattenRequestParams(type);
 
-        LOG.withTypes(types).debug("pipe read controller", "reading with types");
-        LOG.withLocation(location).withOffset(offset).info("pipe read controller", "reading for data");
+        DEBUG_LOGGER.withLocation(location).withOffset(offset).withTypes(types).info("pipe read controller", "reading for data");
 
         final MessageResults messageResults = reader.read(types, offset, location);
         final List<Message> messages = messageResults.getMessages();

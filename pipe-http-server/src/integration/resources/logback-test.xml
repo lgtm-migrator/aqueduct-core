@@ -1,4 +1,12 @@
 <configuration>
+    <appender name="test-appender" class="com.tesco.aqueduct.pipe.http.TestAppender">
+        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+            <providers>
+                <mdc/>
+            </providers>
+        </encoder>
+    </appender>
+
     <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
         <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
             <providers>
@@ -12,10 +20,12 @@
     </appender>
 
     <logger name="pipe-debug-logger" level="${LOG_LEVEL:-info}" additivity="false">
+        <appender-ref ref="test-appender"/>
         <appender-ref ref="stdout"/>
     </logger>
 
     <root level="${LOG_LEVEL:-info}">
+        <appender-ref ref="test-appender"/>
         <appender-ref ref="stdout"/>
     </root>
 </configuration>
