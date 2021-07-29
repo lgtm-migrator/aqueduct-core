@@ -72,8 +72,7 @@ public class PipeReadController {
         logOffsetRequestFromRemoteHost(offset, request);
         final List<String> types = flattenRequestParams(type);
 
-        LOG.withTypes(types).debug("pipe read controller", "reading with types");
-        DEBUG_LOGGER.withLocation(location).withOffset(offset).info("pipe read controller", "reading for data");
+        DEBUG_LOGGER.withLocation(location).withOffset(offset).withTypes(types).info("pipe read controller", "reading for data");
 
         final MessageResults messageResults = reader.read(types, offset, location);
         final List<Message> messages = messageResults.getMessages();

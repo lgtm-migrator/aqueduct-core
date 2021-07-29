@@ -323,7 +323,7 @@ class PipeReadControllerIntegrationSpec extends Specification {
     }
 
     def "messages larger than the compression threshold should be encoded if Accept-Content header set to brotli"() {
-        given: 'a read request'
+        given: "a read request"
         def message = new Message("type", "key", "contentType", 0L, ZonedDateTime.now(Clock.systemUTC()), "a" * 1025)
         reader.read([], 0, _ as String) >> new MessageResults([message], 0, of(0L), PipeState.UP_TO_DATE)
 
@@ -342,7 +342,7 @@ class PipeReadControllerIntegrationSpec extends Specification {
     }
 
     def "messages larger than the compression threshold should be encoded if Accept-Content header set to gzip"() {
-        given: 'a read request'
+        given: "a read request"
         def message = new Message("type", "key", "contentType", 0L, ZonedDateTime.now(Clock.systemUTC()), "a" * 1025)
         reader.read([], 0, _ as String) >> new MessageResults([message], 0, of(0L), PipeState.UP_TO_DATE)
 
@@ -361,7 +361,7 @@ class PipeReadControllerIntegrationSpec extends Specification {
     }
 
     def "messages smaller than the compression threshold should not be encoded"() {
-        given: 'a read request'
+        given: "a read request"
         def message = new Message("type", "key", "contentType", 0L, ZonedDateTime.now(Clock.systemUTC()), "smallPayload")
         reader.read([], 0, _ as String) >> new MessageResults([message], 0, of(0L), PipeState.UP_TO_DATE)
 
@@ -380,7 +380,7 @@ class PipeReadControllerIntegrationSpec extends Specification {
     }
 
     def "only log in the cloud the location and offset reading from"() {
-        given: 'a read request'
+        given: "a read request"
         reader.read([], 0, _ as String) >> new MessageResults([], 0, of(0L), PipeState.UP_TO_DATE)
 
         when: "we read from the pipe"
@@ -391,7 +391,13 @@ class PipeReadControllerIntegrationSpec extends Specification {
 
         then: "logs contain trace of location and offset reading from"
         TestAppender.getEvents().stream()
-            .filter { it.loggerName.contains("pipe-debug-logger") && it.message == "reading for data"}
+            .filter {
+                it.loggerName.contains("pipe-debug-logger")
+                && it.message == "reading for data"
+                && it.getMDCPropertyMap().location == "someLocation"
+                && it.getMDCPropertyMap().offset == "0"
+                && it.getMDCPropertyMap().types == null
+            }
             .count() == 1
     }
 
