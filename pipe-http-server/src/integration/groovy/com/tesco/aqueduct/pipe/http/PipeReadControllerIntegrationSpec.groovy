@@ -47,6 +47,8 @@ class PipeReadControllerIntegrationSpec extends Specification {
         RestAssured.port = server.port
 
         locationResolver.getClusterUuids(_) >> ["cluster1"]
+
+        TestAppender.clearEvents()
     }
 
     @Unroll
@@ -375,6 +377,22 @@ class PipeReadControllerIntegrationSpec extends Specification {
         and: "the response has the correct encoding header"
         response.header("X-Content-Encoding") == null
         response.header("content-encoding") == null
+    }
+
+    def "only log in the cloud the location and offset reading from"() {
+        given: 'a read request'
+        reader.read([], 0, _ as String) >> new MessageResults([], 0, of(0L), PipeState.UP_TO_DATE)
+
+        when: "we read from the pipe"
+        RestAssured
+            .given()
+            .header("Accept-Encoding", "br")
+            .get("/pipe/0?location=someLocation")
+
+        then: "logs contain trace of location and offset reading from"
+        TestAppender.getEvents().stream()
+            .filter { it.loggerName.contains("pipe-debug-logger") && it.message == "reading for data"}
+            .count() == 1
     }
 
     @MockBean(Reader)
