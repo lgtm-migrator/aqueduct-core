@@ -4,10 +4,12 @@ import com.tesco.aqueduct.pipe.api.*;
 import com.tesco.aqueduct.pipe.codec.ContentEncoder;
 import com.tesco.aqueduct.pipe.logger.PipeLogger;
 import com.tesco.aqueduct.pipe.metrics.Measure;
+import com.tesco.aqueduct.registry.model.Bootstrapable;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
@@ -23,13 +25,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Secured("PIPE_READ")
 @Measure
 @Controller
-public class PipeReadController {
+@Named("controller")
+public class PipeReadController implements Bootstrapable {
 
     private static final PipeLogger LOG = new PipeLogger(LoggerFactory.getLogger(PipeReadController.class));
     private static final PipeLogger DEBUG_LOGGER = new PipeLogger(LoggerFactory.getLogger("pipe-debug-logger"));
@@ -40,15 +44,16 @@ public class PipeReadController {
     private final ContentEncoder contentEncoder;
     private final PipeRateLimiter rateLimiter;
     private final boolean logging;
+    private AtomicBoolean serviceAvailable;
 
     @Inject
     public PipeReadController(
-            @Named("local") Reader reader,
-            @Property(name = "pipe.bootstrap.threshold", defaultValue = "6h") Duration bootstrapThreshold,
-            @Property(name = "pipe.clusterChange.threshold", defaultValue = "24h") Duration clusterChangeThreshold,
-            @Property(name = "bootstrap.retry.logging", defaultValue = "false") boolean logging,
-            ContentEncoder contentEncoder,
-            PipeRateLimiter rateLimiter
+        @Named("local") Reader reader,
+        @Property(name = "pipe.bootstrap.threshold", defaultValue = "6h") Duration bootstrapThreshold,
+        @Property(name = "pipe.clusterChange.threshold", defaultValue = "24h") Duration clusterChangeThreshold,
+        @Property(name = "bootstrap.retry.logging", defaultValue = "false") boolean logging,
+        ContentEncoder contentEncoder,
+        PipeRateLimiter rateLimiter
     ) {
         this.reader = reader;
         this.bootstrapThreshold = bootstrapThreshold;
@@ -56,6 +61,7 @@ public class PipeReadController {
         this.logging = logging;
         this.contentEncoder = contentEncoder;
         this.rateLimiter = rateLimiter;
+        this.serviceAvailable = new AtomicBoolean(true);
     }
 
     @Get("/pipe/{offset}{?type,location}")
@@ -65,6 +71,10 @@ public class PipeReadController {
         @Nullable final List<String> type,
         @Nullable final String location
     ) {
+        if (!serviceAvailable.get()) {
+            return HttpResponse.status(HttpStatus.SERVICE_UNAVAILABLE);
+        }
+
         if (offset < 0 || StringUtils.isEmpty(location)) {
             return HttpResponse.badRequest();
         }
@@ -156,5 +166,22 @@ public class PipeReadController {
             .stream()
             .flatMap(s -> Stream.of(s.split(",")))
             .collect(Collectors.toList());
+    }
+
+    @Override
+    public void stop() {
+        LOG.info("bootstrap", "Controller stopped");
+        serviceAvailable.set(false);
+    }
+
+    @Override
+    public void start() {
+        LOG.info("bootstrap", "Controller started");
+        serviceAvailable.set(true);
+    }
+
+    @Override
+    public void reset() throws Exception {
+        //null op
     }
 }

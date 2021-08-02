@@ -32,13 +32,14 @@ class SelfRegistrationTaskSpec extends Specification {
     def services = Mock(ServiceList)
     def bootstrapableProvider = Mock(Bootstrapable)
     def bootstrapablePipe = Mock(Bootstrapable)
+    def bootstrapableController = Mock(Bootstrapable)
     def corruptionManager = Mock(Resetable)
 
     def 'check registry client polls upstream service'() {
         def startedLatch = new CountDownLatch(1)
 
         given: "a registry client"
-        def registryClient = new SelfRegistrationTask(upstreamClient, { MY_NODE }, services, bootstrapableProvider, bootstrapablePipe, corruptionManager, REGISTRATION_INTERVAL, BOOTSTRAP_DELAY)
+        def registryClient = selfRegistrationTask()
 
         when: "register() is called"
         registryClient.register()
@@ -53,7 +54,7 @@ class SelfRegistrationTaskSpec extends Specification {
 
     def 'check registryHitList defaults to cloud pipe if register call fails'() {
         given: "a registry client"
-        def registryClient = new SelfRegistrationTask(upstreamClient, { MY_NODE }, services, bootstrapableProvider, bootstrapablePipe, corruptionManager, REGISTRATION_INTERVAL, BOOTSTRAP_DELAY)
+        def registryClient = selfRegistrationTask()
 
         and: "when called, upstreamClient will throw an exception"
         upstreamClient.register(_ as Node) >> { throw new RuntimeException() }
@@ -67,7 +68,7 @@ class SelfRegistrationTaskSpec extends Specification {
 
     def 'check register does not default to cloud pipe if previously it succeeded'() {
         given: "a registry client"
-        def registryClient = new SelfRegistrationTask(upstreamClient, { MY_NODE }, services, bootstrapableProvider, bootstrapablePipe, corruptionManager, REGISTRATION_INTERVAL, BOOTSTRAP_DELAY)
+        def registryClient = selfRegistrationTask()
         upstreamClient.register(_ as Node) >> new RegistryResponse(["http://1.2.3.4", "http://5.6.7.8"], BootstrapType.NONE) >> { throw new RuntimeException() }
 
         when: "register() is called successfully"
@@ -82,7 +83,7 @@ class SelfRegistrationTaskSpec extends Specification {
 
     def 'null response to register call does not result in null hit list update update'() {
         given: "a registry client"
-        def registryClient = new SelfRegistrationTask(upstreamClient, { MY_NODE }, services, bootstrapableProvider, bootstrapablePipe, corruptionManager, REGISTRATION_INTERVAL, BOOTSTRAP_DELAY)
+        def registryClient = selfRegistrationTask()
 
         and: "upstream client will return null"
         upstreamClient.register(_ as Node) >> { null }
@@ -99,7 +100,7 @@ class SelfRegistrationTaskSpec extends Specification {
         def startedLatch = new CountDownLatch(1)
 
         given: "a registry client"
-        def registryClient = new SelfRegistrationTask(upstreamClient, { MY_NODE }, services, bootstrapableProvider, bootstrapablePipe, corruptionManager, REGISTRATION_INTERVAL, BOOTSTRAP_DELAY)
+        def registryClient = selfRegistrationTask()
 
         when: "register() is called"
         registryClient.register()
@@ -120,6 +121,9 @@ class SelfRegistrationTaskSpec extends Specification {
         then: "pipe is stopped"
         pipeStopCalls * bootstrapablePipe.stop()
 
+        then: "controller is stopped"
+        controllerStopAndStartCalls * bootstrapableController.stop()
+
         then: "corruption manager is reset"
         corruptionManagerCalls * corruptionManager.reset()
 
@@ -129,17 +133,32 @@ class SelfRegistrationTaskSpec extends Specification {
         then: "pipe is started"
         pipeResetAndStartCalls * bootstrapablePipe.start()
 
+        then: "controller is started"
+        controllerStopAndStartCalls * bootstrapableController.start()
+
         then: "provider is started"
         providerStartCalls * bootstrapableProvider.start()
 
         where:
-        bootstrapType                              | providerStopAndResetCalls | providerStartCalls | pipeResetAndStartCalls | pipeStopCalls | corruptionManagerCalls
-        BootstrapType.PROVIDER                     | 1                         | 1                  | 0                      | 0             | 0
-        BootstrapType.PIPE_AND_PROVIDER            | 1                         | 1                  | 1                      | 1             | 0
-        BootstrapType.NONE                         | 0                         | 0                  | 0                      | 0             | 0
-        BootstrapType.PIPE                         | 0                         | 0                  | 1                      | 1             | 0
-        BootstrapType.PIPE_WITH_DELAY              | 0                         | 0                  | 1                      | 1             | 0
-        BootstrapType.PIPE_AND_PROVIDER_WITH_DELAY | 1                         | 1                  | 1                      | 1             | 0
-        BootstrapType.CORRUPTION_RECOVERY          | 1                         | 0                  | 0                      | 1             | 1
+        bootstrapType                              | providerStopAndResetCalls | providerStartCalls | pipeResetAndStartCalls | pipeStopCalls | controllerStopAndStartCalls | corruptionManagerCalls
+        BootstrapType.PROVIDER                     | 1                         | 1                  | 0                      | 0             | 0                           | 0
+        BootstrapType.PIPE_AND_PROVIDER            | 1                         | 1                  | 1                      | 1             | 1                           | 0
+        BootstrapType.NONE                         | 0                         | 0                  | 0                      | 0             | 0                           | 0
+        BootstrapType.PIPE                         | 0                         | 0                  | 1                      | 1             | 1                           | 0
+        BootstrapType.PIPE_WITH_DELAY              | 0                         | 0                  | 1                      | 1             | 1                           | 0
+        BootstrapType.PIPE_AND_PROVIDER_WITH_DELAY | 1                         | 1                  | 1                      | 1             | 1                           | 0
+        BootstrapType.CORRUPTION_RECOVERY          | 1                         | 0                  | 0                      | 1             | 0                           | 1
+    }
+
+    SelfRegistrationTask selfRegistrationTask() {
+        return new SelfRegistrationTask(upstreamClient,
+            { MY_NODE },
+            services,
+            bootstrapableProvider,
+            bootstrapablePipe,
+            bootstrapableController,
+            corruptionManager,
+            REGISTRATION_INTERVAL,
+            BOOTSTRAP_DELAY)
     }
 }

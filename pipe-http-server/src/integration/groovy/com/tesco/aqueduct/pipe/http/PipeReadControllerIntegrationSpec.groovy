@@ -29,6 +29,9 @@ import static org.hamcrest.Matchers.equalTo
 @Property(name="rate-limiter.capacity", value = "1")
 class PipeReadControllerIntegrationSpec extends Specification {
 
+    @Inject
+    PipeReadController pipeReadController
+
     @Inject @Named("local")
     Reader reader
 
@@ -377,6 +380,50 @@ class PipeReadControllerIntegrationSpec extends Specification {
         and: "the response has the correct encoding header"
         response.header("X-Content-Encoding") == null
         response.header("content-encoding") == null
+    }
+
+    def "if stop is called service unavailable (503) is returned"() {
+        when: "stop is called"
+        pipeReadController.stop()
+
+        and: "we read from the pipe"
+        def response = RestAssured
+            .given()
+            .header("Accept-Encoding", "gzip")
+            .get("/pipe/0?location=someLocation")
+
+        then: "service unavailable is returned"
+        response.statusCode() == 503
+    }
+
+    def "if service is started, requests are served again"() {
+        given: "a read request"
+        def message = new Message("type", "key", "contentType", 0L, ZonedDateTime.now(Clock.systemUTC()), "a" * 1025)
+        reader.read([], 0, _ as String) >> new MessageResults([message], 0, of(0L), PipeState.UP_TO_DATE)
+
+        when: "stop is called"
+        pipeReadController.stop()
+
+        and: "we read from the pipe"
+        def firstResponse = RestAssured
+            .given()
+            .header("Accept-Encoding", "gzip")
+            .get("/pipe/0?location=someLocation")
+
+        then: "service unavailable is returned"
+        firstResponse.statusCode() == 503
+
+        and: "start is called"
+        pipeReadController.start()
+
+        and: "we read from the pipe again"
+        def secondResponse = RestAssured
+            .given()
+            .header("Accept-Encoding", "gzip")
+            .get("/pipe/0?location=someLocation")
+
+        then: "a response is returned"
+        secondResponse.statusCode() == 200
     }
 
     def "only log in the cloud the location and offset reading from"() {

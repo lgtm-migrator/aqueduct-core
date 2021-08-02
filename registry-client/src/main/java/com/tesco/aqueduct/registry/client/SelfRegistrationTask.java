@@ -24,6 +24,7 @@ public class SelfRegistrationTask {
     private final ServiceList services;
     private final Bootstrapable provider;
     private final Bootstrapable pipe;
+    private final Bootstrapable controller;
     private final Resetable corruptionManager;
     private final long bootstrapDelayMs;
 
@@ -34,6 +35,7 @@ public class SelfRegistrationTask {
         final ServiceList services,
         @Named("provider") final Bootstrapable provider,
         @Named("pipe") final Bootstrapable pipe,
+        @Named("controller") final Bootstrapable controller,
         @Named("corruptionManager") Resetable corruptionManager,
         @Property(name = "pipe.http.registration.interval") String retryInterval,
         @Value("${pipe.bootstrap.delay:300000}") final int additionalDelay // 5 minutes extra to allow all nodes to reset
@@ -43,6 +45,7 @@ public class SelfRegistrationTask {
         this.services = services;
         this.provider = provider;
         this.pipe = pipe;
+        this.controller = controller;
         this.corruptionManager = corruptionManager;
         this.bootstrapDelayMs = Duration.parse("PT" + retryInterval).toMillis() + additionalDelay;
     }
@@ -67,28 +70,36 @@ public class SelfRegistrationTask {
                     provider.stop();
                     provider.reset();
                     pipe.stop();
+                    controller.stop();
                     pipe.reset();
                     pipe.start();
+                    controller.start();
                     provider.start();
                     break;
                 case PIPE:
                     pipe.stop();
+                    controller.stop();
                     pipe.reset();
                     pipe.start();
+                    controller.start();
                     break;
                 case PIPE_WITH_DELAY:
                     pipe.stop();
+                    controller.stop();
                     pipe.reset();
                     Thread.sleep(bootstrapDelayMs);
                     pipe.start();
+                    controller.start();
                     break;
                 case PIPE_AND_PROVIDER_WITH_DELAY:
                     provider.stop();
                     provider.reset();
                     pipe.stop();
+                    controller.stop();
                     pipe.reset();
                     Thread.sleep(bootstrapDelayMs);
                     pipe.start();
+                    controller.start();
                     provider.start();
                     break;
                 case CORRUPTION_RECOVERY:
