@@ -137,6 +137,20 @@ class SQLiteStorageIntegrationSpec extends Specification {
         noExceptionThrown()
     }
 
+    def 'full integrity check runs successfully when there are no issues'() {
+        given: 'sqlite storage'
+        sqliteStorage = new SQLiteStorage(successfulDataSource(), limit, 10, batchSize)
+
+        when: 'full integrity check is run'
+        def result = sqliteStorage.runFullIntegrityCheck()
+
+        then: 'no errors are thrown'
+        noExceptionThrown()
+
+        and: 'returns true'
+        result
+    }
+
     def 'global latest offset table gets created upon start up'() {
         given: 'a connection to the database is established'
         def sql = Sql.newInstance(connectionUrl)
