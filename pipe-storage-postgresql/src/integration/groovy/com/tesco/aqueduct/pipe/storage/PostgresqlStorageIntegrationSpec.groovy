@@ -329,8 +329,44 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         def rows = sql.rows("select msg_offset from events")
 
         then: "deletions and their corresponding data message having no ttl are removed"
-        rows.size() == 4
-        rows*.msg_offset == [5,6,9,10]
+        rows.size() == 6
+        rows*.msg_offset == [5,6,7,8,9,10]
+    }
+
+    def "deletion messages with a location group don't cause previous messages without to compact"() {
+        given: "deletion compaction threshold"
+        def compactDeletionsThreshold = LocalDateTime.now().minusDays(10)
+
+        and: "two messages without a location group are published and a ttl older than compaction threshold"
+        insertWithCluster(1, "A", 1, LocalDateTime.now().minusDays(11), null)
+        insertWithCluster(2, "A", 1, LocalDateTime.now().minusDays(11))
+
+        and: "two messages with a location group are published and a ttl within compaction threshold"
+        insertWithCluster(3, "A", 1, LocalDateTime.now().minusDays(6), null, 2L)
+        insertWithCluster(4, "A", 1, LocalDateTime.now().minusDays(6), "data", 2L)
+
+        when: "compaction with given deletion threshold is run"
+        storage.compactAndMaintain(compactDeletionsThreshold, true)
+
+        and: "all messages are read"
+        def rows = sql.rows("select msg_offset from events order by msg_offset")
+
+        then: "initial deletion message is compacted"
+        rows.size() == 3
+        rows*.msg_offset == [2,3,4]
+
+        when: "compaction window moves"
+        compactDeletionsThreshold = LocalDateTime.now().minusDays(5)
+
+        and: "compaction is ran again"
+        storage.compactAndMaintain(compactDeletionsThreshold, true)
+
+        and: "all messages are read"
+        rows = sql.rows("select msg_offset from events order by msg_offset")
+
+        then: "initial data message and both messages with a location group remain"
+        rows.size() == 3
+        rows*.msg_offset == [2,3,4]
     }
 
     def "deletion messages not older than given threshold are not compacted if flag is set to false"() {

@@ -484,6 +484,7 @@ public class PostgresqlStorage implements CentralStorage {
                 "WHERE created_utc <= ? " +
                 "AND data IS NULL " +
                 "AND time_to_live IS NULL " +
+                "AND location_group IS NULL " +
                 "GROUP BY msg_key,type,cluster_id" +
             ") as LATEST_DELETIONS " +
         "WHERE EVENTS.msg_key = LATEST_DELETIONS.msg_key " +
