@@ -29,6 +29,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.String.format;
+
 @Secured("PIPE_READ")
 @Measure
 @Controller
@@ -92,9 +94,7 @@ public class PipeReadController implements Bootstrapable {
 
         byte[] responseBytes = JsonHelper.toJson(messages).getBytes();
 
-        ContentEncoder.EncodedResponse encodedResponse = contentEncoder.encodeResponse(request, responseBytes);
-
-        Map<CharSequence, CharSequence> responseHeaders = new HashMap<>(encodedResponse.getHeaders());
+        Map<CharSequence, CharSequence> responseHeaders = new HashMap<>();
 
         final long retryAfterSeconds = (long) Math.ceil(retryAfterMs / (double) 1000);
 
@@ -102,7 +102,7 @@ public class PipeReadController implements Bootstrapable {
         responseHeaders.put(HttpHeaders.RETRY_AFTER_MS, String.valueOf(retryAfterMs));
         responseHeaders.put(HttpHeaders.PIPE_STATE, messageResults.getPipeState().toString());
 
-        MutableHttpResponse<byte[]> response = HttpResponse.ok(encodedResponse.getEncodedBody()).headers(responseHeaders);
+        MutableHttpResponse<byte[]> response = HttpResponse.ok(responseBytes).headers(responseHeaders);
 
         messageResults.getGlobalLatestOffset()
             .ifPresent(
@@ -153,7 +153,7 @@ public class PipeReadController implements Bootstrapable {
         if(LOG.isDebugEnabled()) {
             LOG.debug(
                 "pipe read controller",
-                String.format("reading from offset %d, requested by %s", offset, request.getRemoteAddress().getHostName())
+                format("reading from offset %d, requested by %s", offset, request.getRemoteAddress().getHostName())
             );
         }
     }
