@@ -1,6 +1,7 @@
 package com.tesco.aqueduct.pipe.http
 
 import io.micronaut.context.ApplicationContext
+import io.micronaut.context.env.yaml.YamlPropertySourceLoader
 import io.micronaut.http.HttpStatus
 import io.micronaut.runtime.server.EmbeddedServer
 import io.restassured.RestAssured
@@ -20,6 +21,13 @@ class PipeStatusControllerIntegrationSpec extends Specification {
         context = ApplicationContext
             .build()
             .mainClass(PipeStatusController)
+            .properties(
+                parseYamlConfig(
+                """
+                    compression.threshold-in-bytes: 1024
+                """
+                )
+            )
             .build()
 
         context.start()
@@ -41,5 +49,10 @@ class PipeStatusControllerIntegrationSpec extends Specification {
             .then()
             .statusCode(HttpStatus.OK.code)
             .body("version", equalTo(Version.getImplementationVersion()))
+    }
+
+    Map<String, Object> parseYamlConfig(String str) {
+        def loader = new YamlPropertySourceLoader()
+        loader.read("config", str.bytes)
     }
 }

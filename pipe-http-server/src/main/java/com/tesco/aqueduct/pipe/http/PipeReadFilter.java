@@ -12,8 +12,7 @@ import org.reactivestreams.Publisher;
 
 import javax.inject.Inject;
 
-
-@Filter("/pipe/**")
+@Filter("/pipe/*")
 public class PipeReadFilter implements HttpServerFilter {
 
     private final ContentEncoder encoder;
