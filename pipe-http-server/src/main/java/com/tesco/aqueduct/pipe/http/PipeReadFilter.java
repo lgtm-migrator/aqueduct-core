@@ -25,11 +25,11 @@ public class PipeReadFilter implements HttpServerFilter {
     @Override
     public Publisher<MutableHttpResponse<?>> doFilter(HttpRequest<?> request, ServerFilterChain chain) {
         return Flowable.fromPublisher(chain.proceed(request))
-            .doOnNext(res -> {
-                if (isReadEndpoint(request) && res.status() == HttpStatus.OK) {
-                    final ContentEncoder.EncodedResponse encodedResponse = encoder.encodeResponse(request, (byte[]) res.body());
-                    res.body(encodedResponse.getEncodedBody());
-                    encodedResponse.getHeaders().forEach(res::header);
+            .doOnNext(response -> {
+                if (isReadEndpoint(request) && response.status() == HttpStatus.OK) {
+                    final ContentEncoder.EncodedResponse encodedResponse = encoder.encodeResponse(request, (byte[]) response.body());
+                    response.body(encodedResponse.getEncodedBody());
+                    encodedResponse.getHeaders().forEach(response::header);
                 }
             });
     }
