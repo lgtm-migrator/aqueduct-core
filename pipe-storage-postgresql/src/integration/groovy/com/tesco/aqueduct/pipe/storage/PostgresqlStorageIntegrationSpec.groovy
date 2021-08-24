@@ -8,25 +8,31 @@ import com.tesco.aqueduct.pipe.api.OffsetName
 import com.tesco.aqueduct.pipe.api.PipeState
 import groovy.sql.Sql
 import groovy.transform.NamedVariant
-import jdk.nashorn.internal.ir.annotations.Ignore
 import org.junit.ClassRule
 import spock.lang.AutoCleanup
 import spock.lang.Shared
+import spock.lang.Specification
 import spock.lang.Unroll
 import spock.util.concurrent.PollingConditions
 
 import javax.sql.DataSource
 import java.sql.*
 import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
 
-class PostgresqlStorageIntegrationSpec extends StorageSpec {
+class PostgresqlStorageIntegrationSpec extends Specification {
 
     private static final LocalDateTime COMPACT_DELETIONS_THRESHOLD = LocalDateTime.now().plusMinutes(60)
+    private static final ZonedDateTime TIME = ZonedDateTime.now(ZoneOffset.UTC).withZoneSameLocal(ZoneId.of("UTC"))
+    private static final long retryAfter = 5000
+    private static final long BATCH_SIZE = 1000
+    private static final int LIMIT = 1000
+    private static final long MAX_OVERHEAD_BATCH_SIZE = (Message.MAX_OVERHEAD_SIZE * LIMIT) + BATCH_SIZE
 
     // Starts real PostgreSQL database, takes some time to create it and clean it up.
     @Shared @ClassRule
@@ -38,9 +44,6 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     DataSource dataSource
     ClusterStorage clusterStorage
 
-    long retryAfter = 5000
-    long batchSize = 1000
-    long maxOverheadBatchSize = (Message.MAX_OVERHEAD_SIZE * limit) + batchSize
     def setup() {
         sql = new Sql(pg.embeddedPostgres.postgresDatabase.connection)
 
@@ -120,9 +123,11 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         INSERT INTO CLUSTERS (cluster_uuid) VALUES ('NONE');        
         """)
 
-        clusterStorage = Mock(ClusterStorage)
-        clusterStorage.getClusterCacheEntry("locationUuid", _ as Connection) >> cacheEntry("locationUuid", [1L])
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
+        clusterStorage = Mock(ClusterStorage) {
+            getClusterCacheEntry("locationUuid", _ as Connection) >> cacheEntry("locationUuid", [1L])
+        }
+
+        storage = new PostgresqlStorage(dataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
     }
 
     @Unroll
@@ -159,7 +164,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         given: "there is postgres storage"
         def limit = 1
         def dataSourceWithMockedConnection = Mock(DataSource)
-        def postgresStorage = new PostgresqlStorage(dataSourceWithMockedConnection, dataSourceWithMockedConnection, limit, 0, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
+        def postgresStorage = new PostgresqlStorage(dataSourceWithMockedConnection, dataSourceWithMockedConnection, limit, 0, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
 
         and: "a mock connection is provided when requested"
         def connection = Mock(Connection)
@@ -187,7 +192,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         def msg3 = message(key: "z")
 
         and: "the size of each message is set so that 3 messages are just larger than the max overhead batch size"
-        int messageSize = Double.valueOf(maxOverheadBatchSize / 3).intValue() + 1
+        int messageSize = Double.valueOf(MAX_OVERHEAD_BATCH_SIZE / 3).intValue() + 1
 
         and: "they are inserted into the integrated database"
         insert(msg1, 1, messageSize)
@@ -208,7 +213,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         def msg3 = message(key: "z", type: "type-1")
 
         and: "the size of each message is set so that 3 messages are just larger than the max overhead batch size"
-        int messageSize = Double.valueOf(maxOverheadBatchSize / 3).intValue() + 1
+        int messageSize = Double.valueOf(MAX_OVERHEAD_BATCH_SIZE / 3).intValue() + 1
 
         and: "they are inserted into the integrated database"
         insert(msg1, 1, messageSize)
@@ -224,9 +229,9 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
 
     def "retry-after is non-zero if the pipe has no more data at specified offset"() {
         given: "I have some records in the integrated database"
-        insert(message(key: "z"))
-        insert(message(key: "y"))
-        insert(message(key: "x"))
+        insert(message(key: "z"), 1L)
+        insert(message(key: "y"), 1L)
+        insert(message(key: "x"), 1L)
 
         when:
         MessageResults result = storage.read([], 4, "locationUuid")
@@ -394,7 +399,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "transaction is rolled back and compaction is not run when delete compactions fails"() {
         given:
         def compactionDataSource = Mock(DataSource)
-        storage = new PostgresqlStorage(dataSource, compactionDataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, compactionDataSource, LIMIT, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
 
         and:
         def connection = Mock(Connection)
@@ -429,7 +434,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "transaction is rolled back when delete compactions succeeds but compaction fails"() {
         given:
         def compactionDataSource = Mock(DataSource)
-        storage = new PostgresqlStorage(dataSource, compactionDataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, compactionDataSource, LIMIT, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
 
         and:
         def connection = Mock(Connection)
@@ -651,7 +656,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "pipe should return messages if available from the given offset instead of empty set"() {
         given: "there is postgres storage"
         def limit = 3
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
 
         and: "an existing data store with two different types of messages"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
@@ -686,7 +691,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "getMessageCountByType should return the count of messages by type"() {
         given: "there is postgres storage"
         def limit = 3
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage)
 
         and: "an existing data store with two different types of messages"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
@@ -712,7 +717,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "messages are returned when location uuid is contained and valid in the cluster cache"() {
         given:
         def globalLatestOffsetCache = new GlobalLatestOffsetCache()
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
 
         clusterStorage.getClusterCacheEntry("someLocationUuid", _ as Connection) >> cacheEntry("someLocationUuid", [2L, 3L])
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 2L)
@@ -741,7 +746,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         and:
         def someLocationUuid = "someLocationUuid"
         def globalLatestOffsetCache = new GlobalLatestOffsetCache()
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
 
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 2L)
         insert(message(2, "type1", "B", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L)
@@ -792,7 +797,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         given:
         def someLocationUuid = "someLocationUuid"
         def globalLatestOffsetCache = new GlobalLatestOffsetCache()
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
         def firstCacheRead = cacheEntry(someLocationUuid, [1L], LocalDateTime.now().minusMinutes(1))
         def secondCacheRead = cacheEntry(someLocationUuid, [1L], LocalDateTime.now().plusMinutes(1), false)
 
@@ -827,7 +832,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         given:
         def someLocationUuid = "someLocationUuid"
         def globalLatestOffsetCache = new GlobalLatestOffsetCache()
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
         def cacheRead = cacheEntry(someLocationUuid, [2L, 3L], LocalDateTime.now().minusMinutes(1))
 
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 2L)
@@ -856,7 +861,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         given:
         def someLocationUuid = "someLocationUuid"
         def globalLatestOffsetCache = new GlobalLatestOffsetCache()
-        storage = new PostgresqlStorage(dataSource, dataSource, limit, retryAfter, batchSize, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
+        storage = new PostgresqlStorage(dataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, globalLatestOffsetCache, 1, 1, 4, clusterStorage)
         def cacheRead = cacheEntry(someLocationUuid, [2L, 3L], LocalDateTime.now().minusMinutes(1))
 
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 2L)
@@ -917,7 +922,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "messages with location group are not read if given location is not part of any groups"() {
         given: "2 messages, one of which with a location group that the location does not belong to"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(time.toLocalDateTime()), 2L)
+        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 2L)
 
         and: "location does not belong to the group"
         insertLocationGroupFor("locationUuid", [])
@@ -933,7 +938,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "messages with location group are not read if location is not present in location groups table"() {
         given: "2 messages, one of which with a location group that the location does not belong to"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(time.toLocalDateTime()), 2L)
+        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 2L)
 
         when: "messages are read"
         def messageResults = storage.read([], 0L, "locationUuid")
@@ -946,7 +951,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
     def "messages for the given cluster and groups for a given location are both read"() {
         given: "2 messages, one of which with location group"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(time.toLocalDateTime()), 1L)
+        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 1L)
 
         and: "location belongs to the group"
         insertLocationGroupFor("locationUuid", [1L])
@@ -967,12 +972,12 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         insertLocationGroupFor(locationUuid, [3L, 4L])
 
         and: "messages are stored"
-        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(time.toLocalDateTime()), null)
-        insert(message(2, "type1", "B", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(time.toLocalDateTime()), 1L)
-        insert(message(3, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(time.toLocalDateTime()), null)
-        insert(message(4, "type1", "D", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(time.toLocalDateTime()), 3L)
-        insert(message(5, "type1", "E", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(time.toLocalDateTime()), 3L)
-        insert(message(6, "type1", "F", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(time.toLocalDateTime()), 4L)
+        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null)
+        insert(message(2, "type1", "B", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 1L)
+        insert(message(3, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null)
+        insert(message(4, "type1", "D", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 3L)
+        insert(message(5, "type1", "E", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 3L)
+        insert(message(6, "type1", "F", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 4L)
 
         when: "messages are read"
         def messageResults = storage.read([], 0L, locationUuid)
@@ -996,15 +1001,15 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         and: "messages are stored"
         insert(
             message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"),
-            clusterId_1, 0, Timestamp.valueOf(time.toLocalDateTime()), null
+            clusterId_1, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null
         )
         insert(
             message(2, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"),
-            clusterId_2, 0, Timestamp.valueOf(time.toLocalDateTime()), null
+            clusterId_2, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null
         )
         insert(
             message(3, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"),
-            clusterId_2, 0, Timestamp.valueOf(time.toLocalDateTime()), 3L
+            clusterId_2, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 3L
         )
 
         when: "messages are read"
@@ -1062,7 +1067,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
 
         and:
         def storage = new PostgresqlStorage(
-            mockedDataSource, dataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage
+            mockedDataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage
         )
 
         when: "messages are read"
@@ -1111,7 +1116,7 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
 
         and:
         def storage = new PostgresqlStorage(
-                mockedDataSource, dataSource, limit, retryAfter, batchSize, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage
+            mockedDataSource, dataSource, LIMIT, retryAfter, BATCH_SIZE, new GlobalLatestOffsetCache(), 1, 1, 4, clusterStorage
         )
 
         when: "messages are read"
@@ -1122,9 +1127,22 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         messageResults.messages.get(0).offset == 1
     }
 
+    def "number of entities returned respects limit"() {
+        given: "more messages in database than the limit"
+        (LIMIT * 2).times {
+            insert(message(key: "$it"))
+        }
+
+        when:
+        def messages = storage.read(null, 0, "locationUuid").messages.toList()
+
+        then:
+        messages.size() == LIMIT
+    }
+
     void insert(
         Message msg,
-        Long clusterId,
+        Long clusterId=1L,
         int messageSize=0,
         Timestamp time = Timestamp.valueOf(msg.created.toLocalDateTime()),
         Long locationGroup = null
@@ -1134,10 +1152,18 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
                     "INSERT INTO EVENTS(msg_key, content_type, type, created_utc, data, event_size, cluster_id, location_group) VALUES(?,?,?,?,?,?,?,?);",
                     msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, locationGroup
                 )
+
+                Long maxOffset = sql.rows("SELECT max(msg_offset) FROM events;").get(0).max
+
+                sql.execute(
+                    "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
+                    maxOffset, maxOffset
+                )
             } else {
                 sql.execute(
-                    "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, location_group) VALUES(?,?,?,?,?,?,?,?,?);",
-                    msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, locationGroup
+                    "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, location_group) VALUES(?,?,?,?,?,?,?,?,?);" +
+                    "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
+                    msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, locationGroup, msg.offset, msg.offset
                 )
             }
     }
@@ -1152,8 +1178,9 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         Long locationGroup = null
     ) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, time_to_live, location_group) VALUES(?,?,?,?,?,?,?,?,?,?);",
-            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, Timestamp.valueOf(ttl), locationGroup
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, time_to_live, location_group) VALUES(?,?,?,?,?,?,?,?,?,?);" +
+            "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
+            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, Timestamp.valueOf(ttl), locationGroup, offset, offset
         )
     }
 
@@ -1166,40 +1193,26 @@ class PostgresqlStorageIntegrationSpec extends StorageSpec {
         Long locationGroup = null
     ) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, time_to_live, location_group) VALUES(?,?,?,?,?,?,?,?,?,?);",
-            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, null, locationGroup
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, time_to_live, location_group) VALUES(?,?,?,?,?,?,?,?,?,?);" +
+            "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
+            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, null, locationGroup, offset, offset
         )
     }
 
     @NamedVariant
-    @Override
     Message message(Long offset, String type, String key, String contentType, ZonedDateTime created, String data) {
         new Message(
             type ?: "type",
             key ?: "key",
             contentType ?: "contentType",
             offset,
-            created ?: time,
+            created ?: ZonedDateTime.now(ZoneOffset.UTC).withZoneSameLocal(ZoneId.of("UTC")),
             data ?: "data"
         )
     }
 
-    Optional<ClusterCacheEntry> cacheEntry(String location, List<Long> clusterIds, LocalDateTime expiry = LocalDateTime.now().plusMinutes(1), boolean valid = true) {
+    Optional<ClusterCacheEntry> cacheEntry(String location, List<Long> clusterIds, LocalDateTime expiry = LocalDateTime.now().plusHours(1), boolean valid = true) {
         Optional.of(new ClusterCacheEntry(location, clusterIds, expiry, valid))
-    }
-
-    void insertLocationInCache(
-        String locationUuid,
-        List<Long> clusterIds,
-        def expiry = Timestamp.valueOf(LocalDateTime.now() + TimeUnit.MINUTES.toMillis(1)),
-        boolean valid = true
-    ) {
-        Connection connection = DriverManager.getConnection(pg.embeddedPostgres.getJdbcUrl("postgres", "postgres"))
-        Array clusters = connection.createArrayOf("integer", clusterIds.toArray())
-        sql.execute(
-            "INSERT INTO CLUSTER_CACHE(location_uuid, cluster_ids, expiry, valid) VALUES (?, ?, ?, ?)",
-                locationUuid, clusters, expiry, valid
-        )
     }
 
     void insertLocationGroupFor(String locationUuid, List<Long> locationGroups) {

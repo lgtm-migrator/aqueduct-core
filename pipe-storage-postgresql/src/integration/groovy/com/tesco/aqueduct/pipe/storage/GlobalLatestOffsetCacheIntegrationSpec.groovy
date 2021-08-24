@@ -39,20 +39,14 @@ class GlobalLatestOffsetCacheIntegrationSpec extends Specification {
         sql = new Sql(pg.embeddedPostgres.postgresDatabase.connection)
 
         sql.execute("""
-        DROP TABLE IF EXISTS EVENTS;
+        DROP TABLE IF EXISTS OFFSETS;
 
-        CREATE TABLE EVENTS(
-            msg_offset BIGSERIAL PRIMARY KEY NOT NULL,
-            msg_key varchar NOT NULL, 
-            content_type varchar NOT NULL, 
-            type varchar NOT NULL, 
-            created_utc timestamp NOT NULL, 
-            data text NULL,
-            event_size int NOT NULL,
-            cluster_id BIGINT NOT NULL DEFAULT 1,
-            time_to_live TIMESTAMP NULL
+        CREATE TABLE OFFSETS(
+            name varchar PRIMARY KEY,
+            value BIGINT NOT NULL
         );
         """)
+
 
         globalLatestOffsetCache = applicationContext.getBean(GlobalLatestOffsetCache)
     }
@@ -62,13 +56,13 @@ class GlobalLatestOffsetCacheIntegrationSpec extends Specification {
         def connection = getConnection(pg.embeddedPostgres.getJdbcUrl("postgres", "postgres"))
 
         and:
-        insertMessage(100)
+        insertGlobalLatestOffset(100)
 
         when:
         globalLatestOffsetCache.get(connection) == 100
 
         and:
-        insertMessage(101)
+        insertGlobalLatestOffset(101)
 
         then:
         globalLatestOffsetCache.get(connection) == 100
@@ -80,8 +74,8 @@ class GlobalLatestOffsetCacheIntegrationSpec extends Specification {
         def connection = getConnection(pg.embeddedPostgres.getJdbcUrl("postgres", "postgres"))
 
         and: "some events exists"
-        insertMessage(3)
-        insertMessage(4)
+        insertGlobalLatestOffset(3)
+        insertGlobalLatestOffset(4)
 
         when:
         def globalLatestOffset = globalLatestOffsetCache.get(connection)
@@ -107,10 +101,7 @@ class GlobalLatestOffsetCacheIntegrationSpec extends Specification {
         globalLatestOffset == 0
     }
 
-    void insertMessage(Long offset) {
-        sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id) VALUES(?,?,?,?,?,?,?,?);",
-            offset, "key", "contentType", "type", Timestamp.valueOf(LocalDateTime.now()), "data", 10, 1
-        )
+    void insertGlobalLatestOffset(Long offset) {
+        sql.execute("INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;", offset, offset)
     }
 }

@@ -13,7 +13,7 @@ import java.sql.SQLException;
 @Singleton
 public class GlobalLatestOffsetCache {
 
-    private static final String GET_GLOBAL_LATEST_OFFSET_QUERY = "SELECT max(msg_offset) FROM events";
+    private static final String GET_GLOBAL_LATEST_OFFSET_QUERY = "SELECT value FROM offsets WHERE name='global_latest_offset'";
 
     private static final PipeLogger LOG = new PipeLogger(LoggerFactory.getLogger(PostgresqlStorage.class));
 

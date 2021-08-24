@@ -2,7 +2,6 @@ import Helper.SqlWrapper
 import com.opentable.db.postgres.junit.EmbeddedPostgresRules
 import com.opentable.db.postgres.junit.SingleInstancePostgresRule
 import com.tesco.aqueduct.pipe.api.HttpHeaders
-import com.tesco.aqueduct.pipe.api.Message
 import com.tesco.aqueduct.pipe.storage.ClusterCacheEntry
 import com.tesco.aqueduct.pipe.storage.ClusterStorage
 import groovy.sql.Sql
@@ -58,7 +57,7 @@ class PipeCloudServerIntegrationSpec extends Specification {
                 "persistence.read.cluster-db-pool-size": 10,
                 "micronaut.security.enabled": "false",
                 "compression.threshold-in-bytes": 1024,
-                "micronaut.caches.latest-offset-cache.expire-after-write": "5s",
+                "micronaut.caches.latest-offset-cache.expire-after-write": "10s",
             )
             .mainClass(EmbeddedServer)
             .build()
@@ -81,8 +80,8 @@ class PipeCloudServerIntegrationSpec extends Specification {
 
     def "once I inserted some documents in database I can read them from the pipe" () {
         given:
-        insert(100,  "a", "contentType", "type1", time, "data")
-        insert(101, "b", "contentType", "type1", time, null)
+        insertMessage(100,  "a", "contentType", "type1", time, "data")
+        insertMessage(101, "b", "contentType", "type1", time, null)
 
         and: "location to cluster resolution"
         clusterStorage.getClusterCacheEntry("someLocation", _ as Connection) >> clusterCacheEntry("someLocation", [1L])
@@ -104,8 +103,8 @@ class PipeCloudServerIntegrationSpec extends Specification {
 
     def "the global latest offset is cached" () {
         given:
-        insert(100,  "a", "contentType", "type1", time, "data")
-        insert(101, "b", "contentType", "type1", time, null)
+        insertMessage(100,  "a", "contentType", "type1", time, "data")
+        insertMessage(101, "b", "contentType", "type1", time, null)
 
         and: "location to cluster resolution"
         clusterStorage.getClusterCacheEntry("someLocation", _ as Connection) >> clusterCacheEntry("someLocation", [1L])
@@ -119,8 +118,8 @@ class PipeCloudServerIntegrationSpec extends Specification {
             .header(HttpHeaders.GLOBAL_LATEST_OFFSET.toString(), equalTo("101"))
 
         when: "more data is inserted"
-        insert(102, "b", "contentType", "type1", time, null)
-        insert(103, "b", "contentType", "type1", time, null)
+        insertMessage(102, "b", "contentType", "type1", time, null)
+        insertMessage(103, "b", "contentType", "type1", time, null)
 
         and:
         def request2 = RestAssured.get("/pipe/100?location=someLocation")
@@ -135,22 +134,13 @@ class PipeCloudServerIntegrationSpec extends Specification {
         Optional.of(new ClusterCacheEntry(locationUuid, clusterIds, LocalDateTime.now().plusMinutes(1), true))
     }
 
-    void insert(Long msg_offset, String msg_key, String content_type, String type, LocalDateTime created, String data) {
-
+    void insertMessage(Long msg_offset, String msg_key, String content_type, String type, LocalDateTime created, String data) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size) VALUES(?,?,?,?,?,?,?);",
-            msg_offset, msg_key, content_type, type, created, data, 0
+            "INSERT INTO EVENTS (msg_offset, msg_key, content_type, type, created_utc, data, event_size) VALUES(?,?,?,?,?,?,?);" +
+            "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
+            msg_offset, msg_key, content_type, type, created, data, 0, msg_offset, msg_offset
         )
     }
 
-    void insert(Message message) {
-        insert(
-            message.getOffset(),
-            message.getKey(),
-            message.getContentType(),
-            message.getType(),
-            message.getCreated().toLocalDateTime(),
-            message.getData()
-        )
-    }
+
 }

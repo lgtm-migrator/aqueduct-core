@@ -275,15 +275,16 @@ class LocationRoutingIntegrationSpec extends Specification {
 
     void insertWithoutCluster(Message msg, int maxMessageSize=0, def time = Timestamp.valueOf(msg.created.toLocalDateTime()) ) {
         sql.execute(
-                "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size) VALUES(?,?,?,?,?,?,?);",
-                msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size) VALUES(?,?,?,?,?,?,?);",
+            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize
         )
     }
 
     void insertWithCluster(Message msg, Long clusterId, def time = Timestamp.valueOf(msg.created.toLocalDateTime()), int maxMessageSize=0) {
         sql.execute(
-                "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id) VALUES(?,?,?,?,?,?,?,?);",
-                msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id) VALUES(?,?,?,?,?,?,?,?);" +
+            "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
+            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId, msg.offset, msg.offset
         )
     }
 
