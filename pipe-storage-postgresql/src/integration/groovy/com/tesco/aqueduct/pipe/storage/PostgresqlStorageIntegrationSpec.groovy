@@ -385,7 +385,6 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         MessageResults result = storage.read(null, 0, "locationUuid")
         List<Message> retrievedMessages = result.messages
 
-
         then: "no deletions are compacted"
         retrievedMessages.size() == 3
         retrievedMessages*.offset == [1, 3, 4]
