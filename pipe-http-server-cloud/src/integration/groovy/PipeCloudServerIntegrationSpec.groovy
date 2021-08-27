@@ -2,6 +2,7 @@ import Helper.SqlWrapper
 import com.opentable.db.postgres.junit.EmbeddedPostgresRules
 import com.opentable.db.postgres.junit.SingleInstancePostgresRule
 import com.tesco.aqueduct.pipe.api.HttpHeaders
+import com.tesco.aqueduct.pipe.api.Message
 import com.tesco.aqueduct.pipe.storage.ClusterCacheEntry
 import com.tesco.aqueduct.pipe.storage.ClusterStorage
 import groovy.sql.Sql
@@ -17,11 +18,12 @@ import spock.lang.Specification
 import javax.sql.DataSource
 import java.sql.Connection
 import java.time.LocalDateTime
+import java.time.ZonedDateTime
 
 import static org.hamcrest.Matchers.equalTo
 
 class PipeCloudServerIntegrationSpec extends Specification {
-    static LocalDateTime time = LocalDateTime.parse("2018-12-20T15:13:01")
+    private ZonedDateTime time = ZonedDateTime.parse("2018-12-20T15:13:01Z")
 
     // Starts real PostgreSQL database, takes some time to create it and clean it up.
     @Shared @ClassRule SingleInstancePostgresRule pg = EmbeddedPostgresRules.singleInstance()
@@ -30,10 +32,12 @@ class PipeCloudServerIntegrationSpec extends Specification {
 
     DataSource dataSource
     ClusterStorage clusterStorage
+    SqlWrapper sqlWrapper
 
     def setup() {
 
-        sql = new SqlWrapper(pg.embeddedPostgres.postgresDatabase).sql
+        sqlWrapper = new SqlWrapper(pg.embeddedPostgres.postgresDatabase)
+        sql = sqlWrapper.sql
 
         dataSource = Mock()
         clusterStorage = Mock()
@@ -80,8 +84,8 @@ class PipeCloudServerIntegrationSpec extends Specification {
 
     def "once I inserted some documents in database I can read them from the pipe" () {
         given:
-        insertMessage(100,  "a", "contentType", "type1", time, "data")
-        insertMessage(101, "b", "contentType", "type1", time, null)
+        sqlWrapper.insertWithCluster(new Message("type1", "a", "contentType", 100, time, "data"), 1L)
+        sqlWrapper.insertWithCluster(new Message("type1", "b", "contentType", 101, time, null), 1L)
 
         and: "location to cluster resolution"
         clusterStorage.getClusterCacheEntry("someLocation", _ as Connection) >> clusterCacheEntry("someLocation", [1L])
@@ -103,8 +107,8 @@ class PipeCloudServerIntegrationSpec extends Specification {
 
     def "the global latest offset is cached" () {
         given:
-        insertMessage(100,  "a", "contentType", "type1", time, "data")
-        insertMessage(101, "b", "contentType", "type1", time, null)
+        sqlWrapper.insertWithCluster(new Message("type1", "a", "contentType", 100, time, "data"), 1L)
+        sqlWrapper.insertWithCluster(new Message("type1", "b", "contentType", 101, time, null), 1L)
 
         and: "location to cluster resolution"
         clusterStorage.getClusterCacheEntry("someLocation", _ as Connection) >> clusterCacheEntry("someLocation", [1L])
@@ -118,8 +122,7 @@ class PipeCloudServerIntegrationSpec extends Specification {
             .header(HttpHeaders.GLOBAL_LATEST_OFFSET.toString(), equalTo("101"))
 
         when: "more data is inserted"
-        insertMessage(102, "b", "contentType", "type1", time, null)
-        insertMessage(103, "b", "contentType", "type1", time, null)
+        sqlWrapper.insertWithCluster(new Message("type1", "b", "contentType", 102, time, null), 1L)
 
         and:
         def request2 = RestAssured.get("/pipe/100?location=someLocation")
@@ -133,14 +136,4 @@ class PipeCloudServerIntegrationSpec extends Specification {
     Optional<ClusterCacheEntry> clusterCacheEntry(String locationUuid, List<Long> clusterIds) {
         Optional.of(new ClusterCacheEntry(locationUuid, clusterIds, LocalDateTime.now().plusMinutes(1), true))
     }
-
-    void insertMessage(Long msg_offset, String msg_key, String content_type, String type, LocalDateTime created, String data) {
-        sql.execute(
-            "INSERT INTO EVENTS (msg_offset, msg_key, content_type, type, created_utc, data, event_size) VALUES(?,?,?,?,?,?,?);" +
-            "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-            msg_offset, msg_key, content_type, type, created, data, 0, msg_offset, msg_offset
-        )
-    }
-
-
 }

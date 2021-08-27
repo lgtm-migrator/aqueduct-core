@@ -26,9 +26,7 @@ class LocationRoutingIntegrationSpec extends Specification {
     private static final String CLIENT_ID = UUID.randomUUID().toString()
     private static final String CLIENT_SECRET = UUID.randomUUID().toString()
     private static final String CLIENT_ID_AND_SECRET = "trn:tesco:cid:${CLIENT_ID}:${CLIENT_SECRET}"
-    public static final String VALIDATE_TOKEN_PATH = "${IdentityMock.VALIDATE_PATH}?client_id=${CLIENT_ID_AND_SECRET}"
-
-    private final static String ISSUE_TOKEN_PATH = "/v4/issue-token/token"
+    private static final String VALIDATE_TOKEN_PATH = "${IdentityMock.VALIDATE_PATH}?client_id=${CLIENT_ID_AND_SECRET}"
     private final static String ACCESS_TOKEN = UUID.randomUUID().toString()
 
     @Shared IdentityMock identityMockService
@@ -37,6 +35,8 @@ class LocationRoutingIntegrationSpec extends Specification {
     @Shared @AutoCleanup ApplicationContext context
     @Shared @ClassRule SingleInstancePostgresRule pg = EmbeddedPostgresRules.singleInstance()
     @AutoCleanup Sql sql
+
+    SqlWrapper sqlWrapper
 
     def setupSpec() {
         locationMockService = new LocationMock(ACCESS_TOKEN)
@@ -89,7 +89,8 @@ class LocationRoutingIntegrationSpec extends Specification {
     }
 
     void setup() {
-        sql = new SqlWrapper(pg.embeddedPostgres.postgresDatabase).sql
+        sqlWrapper = new SqlWrapper(pg.embeddedPostgres.postgresDatabase)
+        sql = sqlWrapper.sql
         identityMockService.acceptIdentityTokenValidationRequest()
         identityMockService.issueValidTokenFromIdentity()
     }
@@ -123,12 +124,12 @@ class LocationRoutingIntegrationSpec extends Specification {
         def message5 = message(5, "type1", "E", "content-type", utcZoned("2000-12-01T10:00:00Z"), "data")
         def message6 = message(6, "type3", "F", "content-type", utcZoned("2000-12-01T10:00:00Z"), "data")
 
-        insertWithCluster(message1, clusterA)
-        insertWithCluster(message2, clusterB)
-        insertWithCluster(message3, clusterB)
-        insertWithCluster(message4, clusterA)
-        insertWithCluster(message5, clusterA)
-        insertWithCluster(message6, clusterA)
+        sqlWrapper.insertWithCluster(message1, clusterA)
+        sqlWrapper.insertWithCluster(message2, clusterB)
+        sqlWrapper.insertWithCluster(message3, clusterB)
+        sqlWrapper.insertWithCluster(message4, clusterA)
+        sqlWrapper.insertWithCluster(message5, clusterA)
+        sqlWrapper.insertWithCluster(message6, clusterA)
 
         when: "read messages for the given location"
         def response = RestAssured.given()
@@ -162,12 +163,13 @@ class LocationRoutingIntegrationSpec extends Specification {
         def message4 = message(4, "type2", "D", "content-type", utcZoned("2000-12-01T10:00:00Z"), "data")
         def message5 = message(5, "type1", "E", "content-type", utcZoned("2000-12-01T10:00:00Z"), "data")
         def message6 = message(6, "type3", "F", "content-type", utcZoned("2000-12-01T10:00:00Z"), "data")
-        insertWithCluster(message1, clusterA)
-        insertWithCluster(message2, clusterB)
-        insertWithCluster(message3, clusterB)
-        insertWithCluster(message4, clusterA)
-        insertWithCluster(message5, clusterA)
-        insertWithCluster(message6, clusterA)
+
+        sqlWrapper.insertWithCluster(message1, clusterA)
+        sqlWrapper.insertWithCluster(message2, clusterB)
+        sqlWrapper.insertWithCluster(message3, clusterB)
+        sqlWrapper.insertWithCluster(message4, clusterA)
+        sqlWrapper.insertWithCluster(message5, clusterA)
+        sqlWrapper.insertWithCluster(message6, clusterA)
 
         when: "read messages for the given location"
         def response = RestAssured.given()
@@ -193,8 +195,10 @@ class LocationRoutingIntegrationSpec extends Specification {
         and: "some messages with default cluster"
         def message1 = message(1, "type1", "A", "content-type", utcZoned("2000-12-03T10:00:00Z"), "data")
         def message2 = message(2, "type2", "B", "content-type", utcZoned("2000-12-03T10:00:00Z"), "data")
-        insertWithoutCluster(message1)
-        insertWithoutCluster(message2)
+
+        long anotherCluster = 5L
+        sqlWrapper.insertWithCluster(message1, anotherCluster)
+        sqlWrapper.insertWithCluster(message2, anotherCluster)
 
         when: "read messages for the given location"
         def response = RestAssured.given()
@@ -232,14 +236,14 @@ class LocationRoutingIntegrationSpec extends Specification {
         def message7 = message(7, "type4", "G", "content-type", utcZoned("2000-12-03T10:00:00Z"), "data")
         def message8 = message(8, "type5", "H", "content-type", utcZoned("2000-12-03T10:00:00Z"), "data")
 
-        insertWithCluster(message1, clusterA)
-        insertWithCluster(message2, clusterB)
-        insertWithCluster(message3, clusterB)
-        insertWithCluster(message4, clusterA)
-        insertWithCluster(message5, clusterA)
-        insertWithCluster(message6, clusterA)
-        insertWithCluster(message7, clusterC)
-        insertWithCluster(message8, clusterC)
+        sqlWrapper.insertWithCluster(message1, clusterA)
+        sqlWrapper.insertWithCluster(message2, clusterB)
+        sqlWrapper.insertWithCluster(message3, clusterB)
+        sqlWrapper.insertWithCluster(message4, clusterA)
+        sqlWrapper.insertWithCluster(message5, clusterA)
+        sqlWrapper.insertWithCluster(message6, clusterA)
+        sqlWrapper.insertWithCluster(message7, clusterC)
+        sqlWrapper.insertWithCluster(message8, clusterC)
 
         when: "read messages for the given location"
         def response = RestAssured.given()
@@ -270,21 +274,6 @@ class LocationRoutingIntegrationSpec extends Specification {
             offset,
             created ?: time,
             data ?: "data"
-        )
-    }
-
-    void insertWithoutCluster(Message msg, int maxMessageSize=0, def time = Timestamp.valueOf(msg.created.toLocalDateTime()) ) {
-        sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size) VALUES(?,?,?,?,?,?,?);",
-            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize
-        )
-    }
-
-    void insertWithCluster(Message msg, Long clusterId, def time = Timestamp.valueOf(msg.created.toLocalDateTime()), int maxMessageSize=0) {
-        sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id) VALUES(?,?,?,?,?,?,?,?);" +
-            "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId, msg.offset, msg.offset
         )
     }
 

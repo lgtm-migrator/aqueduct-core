@@ -34,6 +34,7 @@ class SqlWrapper {
             data text NULL,
             event_size int NOT NULL,
             cluster_id BIGINT NOT NULL DEFAULT 1,
+            routing_id BIGINT,
             location_group BIGINT,
             time_to_live TIMESTAMP NULL
         );
@@ -80,9 +81,9 @@ class SqlWrapper {
 
     void insertWithCluster(Message msg, Long clusterId, def time = Timestamp.valueOf(msg.created.toLocalDateTime()), int maxMessageSize=0) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id) VALUES(?,?,?,?,?,?,?,?);" +
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, routing_id) VALUES(?,?,?,?,?,?,?,?,?);" +
             "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId, msg.offset, msg.offset,
+            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId, clusterId, msg.offset, msg.offset,
         )
     }
 
