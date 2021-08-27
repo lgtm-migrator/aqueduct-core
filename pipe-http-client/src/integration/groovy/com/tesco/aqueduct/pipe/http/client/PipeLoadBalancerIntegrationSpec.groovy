@@ -33,7 +33,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
 
     BrotliCodec brotliCodec = new BrotliCodec(4, false)
 
-    PollingConditions check = new PollingConditions(timeout: 50)
+    PollingConditions check = new PollingConditions(timeout: 10)
 
     def setup() {
         serverA = new ErsatzServer()
