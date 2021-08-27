@@ -186,7 +186,6 @@ public class PostgresqlStorage implements CentralStorage {
             }
 
             return query;
-
         } catch (SQLException exception) {
             LOG.error("postgresql storage", "get offsets statement", exception);
             throw new RuntimeException(exception);
