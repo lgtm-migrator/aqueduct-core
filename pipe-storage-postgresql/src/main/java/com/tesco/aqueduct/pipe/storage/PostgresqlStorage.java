@@ -103,31 +103,6 @@ public class PostgresqlStorage implements CentralStorage {
         }
     }
 
-    private List<Long> getLocationGroupsFor(String locationUuid, Connection connection) {
-        long start = System.currentTimeMillis();
-        try (PreparedStatement statement = connection.prepareStatement(getSelectLocationGroupsQuery())) {
-            statement.setString(1, locationUuid);
-            ResultSet resultSet = statement.executeQuery();
-
-            if(resultSet.next()) {
-                Array groups = resultSet.getArray("groups");
-                return Arrays.asList( (Long[]) groups.getArray());
-            } else {
-                return Collections.emptyList();
-            }
-        } catch (SQLException exception) {
-            LOG.error("postgresql storage", "resolve groups for location", exception);
-            throw new RuntimeException(exception);
-        } finally {
-            long end = System.currentTimeMillis();
-            LOG.info("getLocationGroupsFor:time", Long.toString(end - start));
-        }
-    }
-
-    private String getSelectLocationGroupsQuery() {
-        return "SELECT groups FROM LOCATION_GROUPS WHERE location_uuid = ?;";
-    }
-
     private Connection getConnectionAndStartTransaction() throws SQLException {
         long start = System.currentTimeMillis();
         Connection connection = pipeDataSource.getConnection();
@@ -502,8 +477,8 @@ public class PostgresqlStorage implements CentralStorage {
                 "WHERE created_utc <= ? " +
                 "AND data IS NULL " +
                 "AND time_to_live IS NULL " +
-                "AND location_group IS NULL " +
-                "GROUP BY msg_key,type,cluster_id" +
+                "AND cluster_id = routing_id " +
+                "GROUP BY msg_key, type, cluster_id" +
             ") as LATEST_DELETIONS " +
         "WHERE EVENTS.msg_key = LATEST_DELETIONS.msg_key " +
         "AND EVENTS.type = LATEST_DELETIONS.type " +
