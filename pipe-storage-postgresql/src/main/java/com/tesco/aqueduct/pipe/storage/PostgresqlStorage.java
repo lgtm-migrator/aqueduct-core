@@ -70,10 +70,8 @@ public class PostgresqlStorage implements CentralStorage {
 
             final Optional<ClusterCacheEntry> entry = clusterStorage.getClusterCacheEntry(locationUuid, connection);
 
-            List<Long> locationGroups = getLocationGroupsFor(locationUuid, connection);
-
             if (isValidAndUnexpired(entry)) {
-                return readMessages(types, start, startOffset, entry.get().getClusterIds(), locationGroups, connection);
+                return readMessages(types, start, startOffset, entry.get().getClusterIds(), connection);
             } else {
                 commit(connection);
                 close(connection);
@@ -83,10 +81,9 @@ public class PostgresqlStorage implements CentralStorage {
                 connection = getConnectionAndStartTransaction();
 
                 final Optional<List<Long>> newClusterIds = clusterStorage.updateAndGetClusterIds(locationUuid, clusterUuids, entry, connection);
-                locationGroups = getLocationGroupsFor(locationUuid, connection);
 
                 if (newClusterIds.isPresent()) {
-                    return readMessages(types, start, startOffset, newClusterIds.get(), locationGroups, connection);
+                    return readMessages(types, start, startOffset, newClusterIds.get(), connection);
                 } else {
                     LOG.info("postgresql storage", "Recursive read due to Cluster Cache invalidation race condition");
                     return read(types, startOffset, locationUuid);
@@ -104,31 +101,6 @@ public class PostgresqlStorage implements CentralStorage {
             long end = System.currentTimeMillis();
             LOG.info("read:time", Long.toString(end - start));
         }
-    }
-
-    private List<Long> getLocationGroupsFor(String locationUuid, Connection connection) {
-        long start = System.currentTimeMillis();
-        try (PreparedStatement statement = connection.prepareStatement(getSelectLocationGroupsQuery())) {
-            statement.setString(1, locationUuid);
-            ResultSet resultSet = statement.executeQuery();
-
-            if(resultSet.next()) {
-                Array groups = resultSet.getArray("groups");
-                return Arrays.asList( (Long[]) groups.getArray());
-            } else {
-                return Collections.emptyList();
-            }
-        } catch (SQLException exception) {
-            LOG.error("postgresql storage", "resolve groups for location", exception);
-            throw new RuntimeException(exception);
-        } finally {
-            long end = System.currentTimeMillis();
-            LOG.info("getLocationGroupsFor:time", Long.toString(end - start));
-        }
-    }
-
-    private String getSelectLocationGroupsQuery() {
-        return "SELECT groups FROM LOCATION_GROUPS WHERE location_uuid = ?;";
     }
 
     private Connection getConnectionAndStartTransaction() throws SQLException {
@@ -149,7 +121,6 @@ public class PostgresqlStorage implements CentralStorage {
         long start,
         long startOffset,
         List<Long> clusterIds,
-        List<Long> locationGroups,
         Connection connection
     ) throws SQLException {
 
@@ -157,15 +128,70 @@ public class PostgresqlStorage implements CentralStorage {
 
         final long globalLatestOffset = globalLatestOffsetCache.get(connection);
 
-        try (PreparedStatement messagesQuery = getMessagesStatement(connection, types, startOffset, globalLatestOffset, clusterIds, locationGroups)) {
+        try(PreparedStatement getOffsetsQuery = getOffsetsStatement(connection, startOffset, globalLatestOffset, clusterIds, types)) {
+            TreeSet<Long> offsets = runGetOffsetQuery(getOffsetsQuery);
 
-            final List<Message> messages = runMessagesQuery(messagesQuery);
+            List<Message> messages;
+            try(PreparedStatement getMessagesQuery = getMessagesStatement(connection, offsets)) {
+                messages = runMessagesQuery(getMessagesQuery);
+            }
+
             long end = System.currentTimeMillis();
 
             final long retry = calculateRetryAfter(end - start, messages.size());
 
             LOG.info("PostgresSqlStorage:retry", String.valueOf(retry));
             return new MessageResults(messages, retry, OptionalLong.of(globalLatestOffset), PipeState.UP_TO_DATE);
+        }
+    }
+
+    private TreeSet<Long> runGetOffsetQuery(PreparedStatement query) throws SQLException {
+        final TreeSet<Long> orderedOffset = new TreeSet<>();
+        long start = System.currentTimeMillis();
+
+        try (ResultSet rs = query.executeQuery()) {
+            while (rs.next()) {
+                final Long offset = rs.getLong("msg_offset");
+                orderedOffset.add(offset);
+            }
+        } finally {
+            long end = System.currentTimeMillis();
+            LOG.info("runOffsetQuery:time", Long.toString(end - start));
+        }
+
+        return orderedOffset;
+    }
+
+    private PreparedStatement getOffsetsStatement(Connection connection, long startOffset, long endOffset, List<Long> clusterIds, List<String> types) {
+        long start = System.currentTimeMillis();
+        try {
+            PreparedStatement query;
+
+            final Array clusterIdArray = connection.createArrayOf("BIGINT", clusterIds.toArray());
+
+            if(types == null || types.isEmpty()) {
+                query = connection.prepareStatement(getOffsetsWithoutTypes());
+                query.setArray(1, clusterIdArray);
+                query.setLong(2, startOffset);
+                query.setLong(3, endOffset);
+                query.setLong(4, limit);
+            } else {
+                String strTypes = String.join(",", types);
+                query = connection.prepareStatement(getOffsetsWithTypes());
+                query.setArray(1, clusterIdArray);
+                query.setString(2, strTypes);
+                query.setLong(3, startOffset);
+                query.setLong(4, endOffset);
+                query.setLong(5, limit);
+            }
+
+            return query;
+        } catch (SQLException exception) {
+            LOG.error("postgresql storage", "get offsets statement", exception);
+            throw new RuntimeException(exception);
+        } finally {
+            long end = System.currentTimeMillis();
+            LOG.info("getOffsetsStatement:time", Long.toString(end - start));
         }
     }
 
@@ -295,7 +321,6 @@ public class PostgresqlStorage implements CentralStorage {
         long start = System.currentTimeMillis();
 
         try (ResultSet rs = query.executeQuery()) {
-            long startProcessingResults = System.currentTimeMillis();
             while (rs.next()) {
                 final String type = rs.getString("type");
                 final String key = rs.getString("msg_key");
@@ -303,13 +328,9 @@ public class PostgresqlStorage implements CentralStorage {
                 final Long offset = rs.getLong("msg_offset");
                 final ZonedDateTime created = ZonedDateTime.of(rs.getTimestamp("created_utc").toLocalDateTime(), ZoneId.of("UTC"));
                 final String data = rs.getString("data");
-                Long locationGroup = rs.getLong("location_group");
-                locationGroup = locationGroup == 0 ? null : locationGroup;
 
-                messages.add(new Message(type, key, contentType, offset, created, data, 0L, locationGroup));
+                messages.add(new Message(type, key, contentType, offset, created, data, 0L));
             }
-
-            LOG.info("runMessagesQuery:time processing results", Long.toString(System.currentTimeMillis() - startProcessingResults));
         } finally {
             long end = System.currentTimeMillis();
             LOG.info("runMessagesQuery:time", Long.toString(end - start));
@@ -318,35 +339,18 @@ public class PostgresqlStorage implements CentralStorage {
     }
 
     private PreparedStatement getMessagesStatement(
-        final Connection connection,
-        final List<String> types,
-        final long startOffset,
-        long endOffset,
-        final List<Long> clusterIds,
-        List<Long> locationGroups) {
+            Connection connection,
+        final TreeSet<Long> sortedOffsets) {
         try {
             PreparedStatement query;
 
-            final Array clusterIdArray = connection.createArrayOf("BIGINT", clusterIds.toArray());
-            final Array locationGroupsArray = connection.createArrayOf("BIGINT", locationGroups.toArray());
+            Long[] sortedOffsetsArray = sortedOffsets.toArray(new Long[0]);
+            Long[] sortedAndLimitedOffsets = Arrays.copyOfRange(sortedOffsetsArray, 0, Math.min(sortedOffsetsArray.length, limit));
 
-            if (types == null || types.isEmpty()) {
-                query = connection.prepareStatement(getSelectEventsWithoutTypeQuery(maxBatchSize));
-                query.setArray(1, clusterIdArray);
-                query.setArray(2, locationGroupsArray);
-                query.setLong(3, startOffset);
-                query.setLong(4, endOffset);
-                query.setLong(5, limit);
-            } else {
-                final String strTypes = String.join(",", types);
-                query = connection.prepareStatement(getSelectEventsWithTypeQuery(maxBatchSize));
-                query.setArray(1, clusterIdArray);
-                query.setArray(2, locationGroupsArray);
-                query.setLong(3, startOffset);
-                query.setLong(4, endOffset);
-                query.setString(5, strTypes);
-                query.setLong(6, limit);
-            }
+            final Array offsetsPGArray = connection.createArrayOf("BIGINT", sortedAndLimitedOffsets);
+
+            query = connection.prepareStatement(getOptimizedSelectEventsWithoutTypeQuery(maxBatchSize));
+            query.setArray(1, offsetsPGArray);
 
             return query;
 
@@ -429,47 +433,35 @@ public class PostgresqlStorage implements CentralStorage {
         }
     }
 
-    private String getSelectEventsWithoutTypeQuery(long maxBatchSize) {
+    private String getOptimizedSelectEventsWithoutTypeQuery(long maxBatchSize) {
         return
-            " SELECT type, msg_key, content_type, msg_offset, created_utc, data, location_group " +
-            " FROM " +
-            " ( " +
-            "   SELECT " +
-            "     type, msg_key, content_type, msg_offset, created_utc, data, location_group, " +
-            "     SUM(event_size) OVER (ORDER BY msg_offset ASC) AS running_size " +
-            "   FROM events " +
-                  addClusterAndLocationGroupFilter() +
-            "   AND events.msg_offset >= ? " +
-            "   AND events.msg_offset <= ?" +
-            " ORDER BY msg_offset " +
-            " LIMIT ?" +
-            " ) unused " +
-            " WHERE running_size <= " + maxBatchSize;
+            "SELECT type, msg_key, content_type, msg_offset, created_utc, data FROM ( " +
+                "SELECT type, msg_key, content_type, msg_offset, created_utc, data, SUM(event_size) OVER (ORDER BY msg_offset ASC) AS running_size " +
+                "FROM EVENTS WHERE msg_offset=ANY(?)) " +
+            " aggregatedEvents WHERE running_size <= " + maxBatchSize;
     }
 
-    private String getSelectEventsWithTypeQuery(long maxBatchSize) {
+    private String getOffsetsWithoutTypes() {
         return
-            " SELECT type, msg_key, content_type, msg_offset, created_utc, data, location_group " +
-            " FROM " +
-            " ( " +
-            "   SELECT " +
-            "     type, msg_key, content_type, msg_offset, created_utc, data, location_group, " +
-            "     SUM(event_size) OVER (ORDER BY msg_offset ASC) AS running_size " +
-            "   FROM events " +
-                    addClusterAndLocationGroupFilter() +
-            "   AND events.msg_offset >= ? " +
-            "   AND events.msg_offset <= ?" +
-            "   AND type = ANY (string_to_array(?, ','))" +
-            " ORDER BY msg_offset " +
-            " LIMIT ?" +
-            " ) unused " +
-            " WHERE running_size <= " + maxBatchSize;
+            "SELECT msg_offset FROM unnest(?) as cid, lateral( " +
+                "SELECT msg_offset FROM events " +
+                "WHERE routing_id = cid " +
+                "AND msg_offset >= ? " +
+                "AND msg_offset <= ? " +
+                "ORDER by msg_offset LIMIT ? " +
+            ") as eventsByCluster;";
     }
 
-    private String addClusterAndLocationGroupFilter() {
+    private String getOffsetsWithTypes() {
         return
-            " WHERE " +
-            " cluster_id = ANY (?) AND (location_group IS NULL OR location_group = ANY (?)) ";
+            "SELECT msg_offset FROM unnest(?) as cid, lateral( " +
+                "SELECT msg_offset FROM events " +
+                "WHERE routing_id = cid " +
+                "AND type = ANY (string_to_array(?, ',')) " +
+                "AND msg_offset >= ? " +
+                "AND msg_offset <= ? " +
+                "ORDER by msg_offset LIMIT ? " +
+            ") as eventsByCluster;";
     }
 
     private static String getCompactionQuery() {
@@ -484,8 +476,8 @@ public class PostgresqlStorage implements CentralStorage {
                 "WHERE created_utc <= ? " +
                 "AND data IS NULL " +
                 "AND time_to_live IS NULL " +
-                "AND location_group IS NULL " +
-                "GROUP BY msg_key,type,cluster_id" +
+                "AND cluster_id = routing_id " +
+                "GROUP BY msg_key, type, cluster_id" +
             ") as LATEST_DELETIONS " +
         "WHERE EVENTS.msg_key = LATEST_DELETIONS.msg_key " +
         "AND EVENTS.type = LATEST_DELETIONS.type " +

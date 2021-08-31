@@ -23,7 +23,6 @@ class SqlWrapper {
         DROP TABLE IF EXISTS REGISTRY;
         DROP TABLE IF EXISTS NODE_REQUESTS;
         DROP TABLE IF EXISTS OFFSETS;
-        DROP TABLE IF EXISTS LOCATION_GROUPS;
           
         CREATE TABLE EVENTS(
             msg_offset BIGSERIAL PRIMARY KEY NOT NULL,
@@ -34,7 +33,7 @@ class SqlWrapper {
             data text NULL,
             event_size int NOT NULL,
             cluster_id BIGINT NOT NULL DEFAULT 1,
-            location_group BIGINT,
+            routing_id BIGINT,
             time_to_live TIMESTAMP NULL
         );
         
@@ -68,11 +67,6 @@ class SqlWrapper {
             value BIGINT NOT NULL
         );
 
-        CREATE TABLE LOCATION_GROUPS(
-            location_uuid VARCHAR PRIMARY KEY NOT NULL,
-            groups BIGINT[] NOT NULL
-        );
-
         INSERT INTO CLUSTERS (cluster_uuid) VALUES ('NONE');
         """)
         return sql
@@ -80,9 +74,9 @@ class SqlWrapper {
 
     void insertWithCluster(Message msg, Long clusterId, def time = Timestamp.valueOf(msg.created.toLocalDateTime()), int maxMessageSize=0) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id) VALUES(?,?,?,?,?,?,?,?);" +
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, routing_id) VALUES(?,?,?,?,?,?,?,?,?);" +
             "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId, msg.offset, msg.offset,
+            msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, maxMessageSize, clusterId, clusterId, msg.offset, msg.offset,
         )
     }
 

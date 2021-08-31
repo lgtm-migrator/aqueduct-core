@@ -14,6 +14,7 @@ import io.micronaut.http.client.DefaultHttpClientConfiguration
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import spock.lang.AutoCleanup
 import spock.lang.Specification
+import spock.util.concurrent.PollingConditions
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo
 
@@ -31,6 +32,8 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
     ServiceList serviceList
 
     BrotliCodec brotliCodec = new BrotliCodec(4, false)
+
+    PollingConditions check = new PollingConditions(timeout: 10)
 
     def setup() {
         serverA = new ErsatzServer()
@@ -222,11 +225,10 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
         then: "There should be no UP servers"
         loadBalancer.getFollowing().isEmpty()
 
-        when: "after the health check duration"
-        sleep(2000)
-
         then: "the first server is updated as healthy"
-        serverA.verify()
-        loadBalancer.getFollowing().first().toString() == serverA.httpUrl
+        check.eventually {
+            serverA.verify()
+            loadBalancer.getFollowing().first().toString() == serverA.httpUrl
+        }
     }
 }

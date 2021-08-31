@@ -61,8 +61,7 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         DROP TABLE IF EXISTS NODE_REQUESTS;
         DROP TABLE IF EXISTS OFFSETS;
         DROP TABLE IF EXISTS LOCKS;
-        DROP TABLE IF EXISTS LOCATION_GROUPS;
-          
+
         CREATE TABLE EVENTS(
             msg_offset BIGSERIAL PRIMARY KEY NOT NULL,
             msg_key varchar NOT NULL, 
@@ -72,7 +71,7 @@ class PostgresqlStorageIntegrationSpec extends Specification {
             data text NULL,
             event_size int NOT NULL,
             cluster_id BIGINT NOT NULL DEFAULT 1,
-            location_group BIGINT,
+            routing_id BIGINT,
             time_to_live TIMESTAMP NULL
         );        
         
@@ -112,11 +111,6 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         
         CREATE TABLE LOCKS(
             name VARCHAR PRIMARY KEY
-        );
-
-        CREATE TABLE LOCATION_GROUPS(
-            location_uuid VARCHAR PRIMARY KEY,
-            groups BIGINT[] NOT NULL
         );
 
         INSERT INTO LOCKS (name) VALUES ('maintenance_lock');
@@ -321,7 +315,7 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         insertWithCluster(5, "B", 1, LocalDateTime.now().minusDays(8))
         insertWithClusterAndTTL(6, "C", 1, LocalDateTime.now().plusDays(2), LocalDateTime.now().minusDays(8), null)
 
-        // messages with location group
+        // messages inserted with a different routing id
         insertWithCluster(7, "D", 1, LocalDateTime.now().minusDays(8), "data", 2L)
         insertWithCluster(8, "D", 1, LocalDateTime.now().minusDays(8), null, 2L)
         insertWithCluster(9, "D", 1, LocalDateTime.now().minusDays(8), "data", 2L)
@@ -338,15 +332,15 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         rows*.msg_offset == [5,6,7,8,9,10]
     }
 
-    def "deletion messages with a location group don't cause previous messages without to compact"() {
+    def "deletion messages with cluster id different from routing id don't cause previous messages to compact"() {
         given: "deletion compaction threshold"
         def compactDeletionsThreshold = LocalDateTime.now().minusDays(10)
 
-        and: "two messages without a location group are published and a ttl older than compaction threshold"
+        and: "two messages with same cluster id and routing id are published and a ttl older than compaction threshold"
         insertWithCluster(1, "A", 1, LocalDateTime.now().minusDays(11), null)
         insertWithCluster(2, "A", 1, LocalDateTime.now().minusDays(11))
 
-        and: "two messages with a location group are published and a ttl within compaction threshold"
+        and: "two messages with a routing id different from cluster id are published and a ttl within compaction threshold"
         insertWithCluster(3, "A", 1, LocalDateTime.now().minusDays(6), null, 2L)
         insertWithCluster(4, "A", 1, LocalDateTime.now().minusDays(6), "data", 2L)
 
@@ -369,7 +363,7 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         and: "all messages are read"
         rows = sql.rows("select msg_offset from events order by msg_offset")
 
-        then: "initial data message and both messages with a location group remain"
+        then: "initial data message and both messages with different routing id remain"
         rows.size() == 3
         rows*.msg_offset == [2,3,4]
     }
@@ -585,21 +579,6 @@ class PostgresqlStorageIntegrationSpec extends Specification {
 
         where:
         type << ["type1", "type2", "type3"]
-    }
-
-    def "pipe should return all messages when no types are provided and all messages have default cluster"(){
-        given: "some messages are stored with default cluster"
-        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type2", "B", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(3, "type3", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-
-        when: "reading with no types"
-        def messageResults = storage.read([], 0, "locationUuid")
-
-        then: "all messages from the storage are returned regardless the types"
-        messageResults.messages.size() == 3
-        messageResults.messages*.key == ["A", "B", "C"]
-        messageResults.messages*.offset*.intValue() == [1, 2, 3]
     }
 
     def "pipe should return messages for given clusters and no type"() {
@@ -919,110 +898,26 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         types << [ [], ["type1"] ]
     }
 
-    def "messages with location group are not read if given location is not part of any groups"() {
-        given: "2 messages, one of which with a location group that the location does not belong to"
-        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 2L)
-
-        and: "location does not belong to the group"
-        insertLocationGroupFor("locationUuid", [])
-
-        when: "messages are read"
-        def messageResults = storage.read([], 0L, "locationUuid")
-
-        then: "only the message belonging to the location cluster is returned"
-        messageResults.messages.size() == 1
-        messageResults.messages.get(0).offset == 1
-    }
-
-    def "messages with location group are not read if location is not present in location groups table"() {
-        given: "2 messages, one of which with a location group that the location does not belong to"
-        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 2L)
-
-        when: "messages are read"
-        def messageResults = storage.read([], 0L, "locationUuid")
-
-        then: "only the message belonging to the location cluster is returned"
-        messageResults.messages.size() == 1
-        messageResults.messages.get(0).offset == 1
-    }
-
-    def "messages for the given cluster and groups for a given location are both read"() {
-        given: "2 messages, one of which with location group"
-        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
-        insert(message(2, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 1L)
-
-        and: "location belongs to the group"
-        insertLocationGroupFor("locationUuid", [1L])
-
-        when: "messages are read"
-        def messageResults = storage.read([], 0L, "locationUuid")
-
-        then: "both messages are returned"
-        messageResults.messages.size() == 2
-        messageResults.messages.offset*.intValue() == [1, 2]
-    }
-
-    def "location groups are resolved correctly as part of the read"() {
-        given: "a location and its group"
+    def "routing ids are resolved correctly as part of the read"() {
+        given: "a location"
         def locationUuid = "some_location"
-        def clusterId = 3L
-        clusterStorage.getClusterCacheEntry(locationUuid, _ as Connection) >> cacheEntry(locationUuid, [clusterId])
-        insertLocationGroupFor(locationUuid, [3L, 4L])
+        clusterStorage.getClusterCacheEntry(locationUuid, _ as Connection) >> cacheEntry(locationUuid, [1L, 3L, 4L])
 
         and: "messages are stored"
-        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null)
-        insert(message(2, "type1", "B", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 1L)
-        insert(message(3, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null)
+        insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 1L)
+        insert(message(2, "type1", "B", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 5L)
+        insert(message(3, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 2L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 2L)
         insert(message(4, "type1", "D", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 3L)
-        insert(message(5, "type1", "E", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 3L)
+        insert(message(5, "type1", "E", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 1L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 6L)
         insert(message(6, "type1", "F", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"), 3L, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 4L)
 
         when: "messages are read"
         def messageResults = storage.read([], 0L, locationUuid)
 
-        then: "only messages for the relevant cluster and group are returned"
+        then: "only messages for the relevant routing id are returned"
         messageResults.messages.size() == 3
-        messageResults.messages.offset*.intValue() == [3, 4, 6]
+        messageResults.messages.offset*.intValue() == [1, 4, 6]
         messageResults.globalLatestOffset == OptionalLong.of(6)
-    }
-
-
-    @Unroll
-    def "location groups are provided as part of the message results during read when available"() {
-        given: "a location and its group"
-        def locationUuid = "some_location"
-        def clusterId_1 = 1L
-        def clusterId_2 = 2L
-        clusterStorage.getClusterCacheEntry(locationUuid, _ as Connection) >> cacheEntry(locationUuid, [clusterId_1, clusterId_2])
-        insertLocationGroupFor(locationUuid, [3L])
-
-        and: "messages are stored"
-        insert(
-            message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"),
-            clusterId_1, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null
-        )
-        insert(
-            message(2, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"),
-            clusterId_2, 0, Timestamp.valueOf(TIME.toLocalDateTime()), null
-        )
-        insert(
-            message(3, "type1", "C", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"),
-            clusterId_2, 0, Timestamp.valueOf(TIME.toLocalDateTime()), 3L
-        )
-
-        when: "messages are read"
-        def messageResults = storage.read(types, 0L, locationUuid)
-
-        then: "messages returned for the location contain location groups where applicable"
-        messageResults.messages.size() == 3
-        messageResults.messages.offset*.intValue() == [1, 2, 3]
-        messageResults.messages.locationGroup == [null, null, 3L]
-        messageResults.globalLatestOffset == OptionalLong.of(3)
-
-        where:
-        types << [ [], ["type1"] ]
     }
 
     def "vacuum analyse query is valid"() {
@@ -1039,9 +934,6 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         given: "for a location and cluster"
         def locationUuid = "locationUuid"
         def clusterId = 1L
-
-        and: "location group exists"
-        insertLocationGroupFor(locationUuid, [1L])
 
         and: "message in events table"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
@@ -1082,9 +974,6 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         given: "for a location and cluster"
         def locationUuid = "locationUuid"
         def clusterId = 1L
-
-        and: "location group exists"
-        insertLocationGroupFor(locationUuid, [1L])
 
         and: "message in events table"
         insert(message(1, "type1", "A", "content-type", ZonedDateTime.parse("2000-12-01T10:00:00Z"), "data"))
@@ -1142,15 +1031,15 @@ class PostgresqlStorageIntegrationSpec extends Specification {
 
     void insert(
         Message msg,
-        Long clusterId=1L,
-        int messageSize=0,
+        Long clusterId = 1L,
+        int messageSize = 0,
         Timestamp time = Timestamp.valueOf(msg.created.toLocalDateTime()),
-        Long locationGroup = null
+        Long routingId = clusterId
     ) {
             if (msg.offset == null) {
                 sql.execute(
-                    "INSERT INTO EVENTS(msg_key, content_type, type, created_utc, data, event_size, cluster_id, location_group) VALUES(?,?,?,?,?,?,?,?);",
-                    msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, locationGroup
+                    "INSERT INTO EVENTS(msg_key, content_type, type, created_utc, data, event_size, cluster_id, routing_id) VALUES(?,?,?,?,?,?,?,?);",
+                    msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, routingId
                 )
 
                 Long maxOffset = sql.rows("SELECT max(msg_offset) FROM events;").get(0).max
@@ -1161,9 +1050,9 @@ class PostgresqlStorageIntegrationSpec extends Specification {
                 )
             } else {
                 sql.execute(
-                    "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, location_group) VALUES(?,?,?,?,?,?,?,?,?);" +
+                    "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, routing_id) VALUES(?,?,?,?,?,?,?,?,?);" +
                     "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-                    msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, locationGroup, msg.offset, msg.offset
+                    msg.offset, msg.key, msg.contentType, msg.type, time, msg.data, messageSize, clusterId, routingId, msg.offset, msg.offset
                 )
             }
     }
@@ -1175,12 +1064,12 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         LocalDateTime ttl,
         LocalDateTime createdDate = LocalDateTime.now(),
         String data = "data",
-        Long locationGroup = null
+        Long routingId = clusterId
     ) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, time_to_live, location_group) VALUES(?,?,?,?,?,?,?,?,?,?);" +
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, routing_id, time_to_live) VALUES(?,?,?,?,?,?,?,?,?,?);" +
             "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, Timestamp.valueOf(ttl), locationGroup, offset, offset
+            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, routingId, Timestamp.valueOf(ttl), offset, offset
         )
     }
 
@@ -1190,12 +1079,12 @@ class PostgresqlStorageIntegrationSpec extends Specification {
         Long clusterId,
         LocalDateTime createdDate = LocalDateTime.now(),
         String data = "data",
-        Long locationGroup = null
+        Long routingId = clusterId
     ) {
         sql.execute(
-            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, time_to_live, location_group) VALUES(?,?,?,?,?,?,?,?,?,?);" +
+            "INSERT INTO EVENTS(msg_offset, msg_key, content_type, type, created_utc, data, event_size, cluster_id, routing_id, time_to_live) VALUES(?,?,?,?,?,?,?,?,?,?);" +
             "INSERT INTO OFFSETS (name, value) VALUES ('global_latest_offset', ?) ON CONFLICT(name) DO UPDATE SET VALUE = ?;",
-            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, null, locationGroup, offset, offset
+            offset, key, "content-type", "type", Timestamp.valueOf(createdDate), data, 1, clusterId, routingId, null, offset, offset
         )
     }
 
@@ -1213,11 +1102,5 @@ class PostgresqlStorageIntegrationSpec extends Specification {
 
     Optional<ClusterCacheEntry> cacheEntry(String location, List<Long> clusterIds, LocalDateTime expiry = LocalDateTime.now().plusHours(1), boolean valid = true) {
         Optional.of(new ClusterCacheEntry(location, clusterIds, expiry, valid))
-    }
-
-    void insertLocationGroupFor(String locationUuid, List<Long> locationGroups) {
-        Connection connection = DriverManager.getConnection(pg.embeddedPostgres.getJdbcUrl("postgres", "postgres"))
-        Array groups = connection.createArrayOf("integer", locationGroups.toArray())
-        sql.execute("INSERT INTO LOCATION_GROUPS(location_uuid, groups) VALUES (?, ?)", locationUuid, groups)
     }
 }
