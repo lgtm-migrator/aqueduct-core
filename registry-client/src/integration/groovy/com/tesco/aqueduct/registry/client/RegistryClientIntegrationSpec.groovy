@@ -48,7 +48,9 @@ class RegistryClientIntegrationSpec extends Specification {
                 "pipe.http.client.url": server.getHttpUrl(),
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
                 "pipe.http.client.healthcheck.interval": "1m",
-                "pipe.http.register.retry.interval": "1s",
+                "pipe.http.register.delay": "500ms",
+                "pipe.http.register.attempts": "1",
+                "pipe.http.register.reset": "1s",
                 "pipe.http.registration.interval": "1m"
             )
             .build()
@@ -84,11 +86,11 @@ class RegistryClientIntegrationSpec extends Specification {
                 }
             }
         }
+
         and: "A Micronaut-generated Client"
         def client = context.getBean(RegistryClient)
 
         and: "We have a node in the NodeRegistry"
-
         def myNode = Node.builder()
             .group("1234")
             .localUrl(MY_HOST)
