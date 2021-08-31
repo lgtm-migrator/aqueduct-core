@@ -43,9 +43,9 @@ class PipeReadControllerClusterChangeRateLimiterIntegrationSpec extends Specific
     }
 
     void "0ms retry after is issued when data is recent and within rate limiter"() {
-        given: "storage with recent message timestamp and location group"
+        given: "storage with recent message timestamp and routing id different from cluster id"
         reader.read(*_) >> new MessageResults([
-            Message(type, "a", "ct", 100, ZonedDateTime.now().minusHours(1), null, 0, 10)
+            Message(type, "a", "ct", 100, ZonedDateTime.now().minusHours(1), null, 0, 10, 12)
         ], 100L, of(5), PipeState.UP_TO_DATE)
 
         when: "concurrent calls request messages"
