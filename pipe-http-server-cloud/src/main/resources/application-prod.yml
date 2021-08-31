@@ -27,10 +27,6 @@ authentication:
           - REGISTRY_DELETE
           - BOOTSTRAP_NODE
           - PIPE_READ
-      qSupport:
-        clientId: "${Q_SUPPORT_UID}"
-        roles:
-          - BOOTSTRAP_NODE
 
 persistence:
   compact:
