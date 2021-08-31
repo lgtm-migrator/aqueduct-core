@@ -45,13 +45,13 @@ class RegistryClientIntegrationSpec extends Specification {
         def context = ApplicationContext
             .build()
             .properties(
-                "pipe.http.client.url": server.getHttpUrl(),
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
-                "pipe.http.client.healthcheck.interval": "1m",
-                "pipe.http.register.delay": "500ms",
-                "pipe.http.register.attempts": "1",
-                "pipe.http.register.reset": "1s",
-                "pipe.http.registration.interval": "1m"
+                "registry.http.client.interval": "1m",
+                "registry.http.client.delay": "500ms",
+                "registry.http.client.attempts": "1",
+                "registry.http.client.reset": "1s",
+                "pipe.http.client.url": server.getHttpUrl(),
+                "pipe.http.client.healthcheck.interval": "1m"
             )
             .build()
             .registerSingleton(tokenProvider)

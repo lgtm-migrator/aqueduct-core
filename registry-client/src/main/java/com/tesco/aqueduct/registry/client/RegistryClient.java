@@ -10,8 +10,9 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.retry.annotation.CircuitBreaker;
 
 @Client("${registry.http.client.url}")
+@Requires(property = "registry.http.client.interval")
 public interface RegistryClient {
-    @CircuitBreaker(delay = "${pipe.http.register.delay}", attempts = "${pipe.http.register.attempts}", reset = "${pipe.http.register.reset}")
+    @CircuitBreaker(delay = "${registry.http.client.delay}", attempts = "${registry.http.client.attempts}", reset = "${registry.http.client.reset}")
     @Post(uri = "/registry")
     @Header(name="Accept-Encoding", value="gzip, deflate")
     RegistryResponse register(@Body Node node);
