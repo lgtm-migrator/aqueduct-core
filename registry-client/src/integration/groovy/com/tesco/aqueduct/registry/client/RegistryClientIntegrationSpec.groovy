@@ -45,11 +45,13 @@ class RegistryClientIntegrationSpec extends Specification {
         def context = ApplicationContext
             .build()
             .properties(
-                "pipe.http.client.url": server.getHttpUrl(),
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
-                "pipe.http.client.healthcheck.interval": "1m",
-                "pipe.http.register.retry.interval": "1s",
-                "pipe.http.registration.interval": "1m"
+                "registry.http.client.interval": "1m",
+                "registry.http.client.delay": "500ms",
+                "registry.http.client.attempts": "1",
+                "registry.http.client.reset": "1s",
+                "pipe.http.client.url": server.getHttpUrl(),
+                "pipe.http.client.healthcheck.interval": "1m"
             )
             .build()
             .registerSingleton(tokenProvider)
@@ -84,11 +86,11 @@ class RegistryClientIntegrationSpec extends Specification {
                 }
             }
         }
+
         and: "A Micronaut-generated Client"
         def client = context.getBean(RegistryClient)
 
         and: "We have a node in the NodeRegistry"
-
         def myNode = Node.builder()
             .group("1234")
             .localUrl(MY_HOST)
