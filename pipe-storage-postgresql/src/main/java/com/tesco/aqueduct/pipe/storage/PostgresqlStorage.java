@@ -328,8 +328,10 @@ public class PostgresqlStorage implements CentralStorage {
                 final Long offset = rs.getLong("msg_offset");
                 final ZonedDateTime created = ZonedDateTime.of(rs.getTimestamp("created_utc").toLocalDateTime(), ZoneId.of("UTC"));
                 final String data = rs.getString("data");
+                final Long clusterId = rs.getLong("cluster_id");
+                final Long routingId = rs.getLong("routing_id");
 
-                messages.add(new Message(type, key, contentType, offset, created, data, 0L));
+                messages.add(new Message(type, key, contentType, offset, created, data, 0L, clusterId, routingId));
             }
         } finally {
             long end = System.currentTimeMillis();
@@ -349,7 +351,7 @@ public class PostgresqlStorage implements CentralStorage {
 
             final Array offsetsPGArray = connection.createArrayOf("BIGINT", sortedAndLimitedOffsets);
 
-            query = connection.prepareStatement(getOptimizedSelectEventsWithoutTypeQuery(maxBatchSize));
+            query = connection.prepareStatement(getMessagesByOffset(maxBatchSize));
             query.setArray(1, offsetsPGArray);
 
             return query;
@@ -433,10 +435,10 @@ public class PostgresqlStorage implements CentralStorage {
         }
     }
 
-    private String getOptimizedSelectEventsWithoutTypeQuery(long maxBatchSize) {
+    private String getMessagesByOffset(long maxBatchSize) {
         return
-            "SELECT type, msg_key, content_type, msg_offset, created_utc, data FROM ( " +
-                "SELECT type, msg_key, content_type, msg_offset, created_utc, data, SUM(event_size) OVER (ORDER BY msg_offset ASC) AS running_size " +
+            "SELECT type, msg_key, content_type, msg_offset, created_utc, data, cluster_id, routing_id FROM ( " +
+                "SELECT type, msg_key, content_type, msg_offset, created_utc, data, cluster_id, routing_id, SUM(event_size) OVER (ORDER BY msg_offset ASC) AS running_size " +
                 "FROM EVENTS WHERE msg_offset=ANY(?)) " +
             " aggregatedEvents WHERE running_size <= " + maxBatchSize;
     }

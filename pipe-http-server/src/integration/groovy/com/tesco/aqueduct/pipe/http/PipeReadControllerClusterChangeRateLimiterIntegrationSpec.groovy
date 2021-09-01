@@ -42,10 +42,14 @@ class PipeReadControllerClusterChangeRateLimiterIntegrationSpec extends Specific
         locationResolver.getClusterUuids(_) >> ["cluster1"]
     }
 
+    void cleanup() {
+        resetRateLimiter()
+    }
+
     void "0ms retry after is issued when data is recent and within rate limiter"() {
-        given: "storage with recent message timestamp and location group"
+        given: "storage with recent message timestamp and routing id different from cluster id"
         reader.read(*_) >> new MessageResults([
-            Message(type, "a", "ct", 100, ZonedDateTime.now().minusHours(1), null, 0, 10)
+            Message(type, "a", "ct", 100, ZonedDateTime.now().minusHours(1), null, 0, 10, 12)
         ], 100L, of(5), PipeState.UP_TO_DATE)
 
         when: "concurrent calls request messages"
@@ -64,6 +68,40 @@ class PipeReadControllerClusterChangeRateLimiterIntegrationSpec extends Specific
         }
     }
 
+    void "retry after greater than 0 if not part of cluster change"() {
+        given: "a message with same cluster id and routing id"
+        reader.read(*_) >> new MessageResults([
+            Message(type, "a", "ct", 100, ZonedDateTime.now().minusHours(1), null, 0, 10, 10)
+        ], 100L, of(5), PipeState.UP_TO_DATE)
+
+        when: "request is made"
+        def retryAfterHeaders = []
+        retryAfterHeaders << RestAssured.given().get("/pipe/0?location='someLocation'").header(HttpHeaders.RETRY_AFTER_MS)
+
+        then: "no exception is thrown"
+        noExceptionThrown()
+
+        and: "retry after is greater than 0"
+        assert retryAfterHeaders.get(0) == "100"
+    }
+
+    void "no exception is thrown when cluster id and routing id are not initialised"() {
+        given: "a message with no cluster id and routing id"
+        reader.read(*_) >> new MessageResults([
+            Message(type, "a", "ct", 100, ZonedDateTime.now().minusHours(1), null)
+        ], 100L, of(5), PipeState.UP_TO_DATE)
+
+        when: "request is made"
+        def retryAfterHeaders = []
+        retryAfterHeaders << RestAssured.given().get("/pipe/0?location='someLocation'").header(HttpHeaders.RETRY_AFTER_MS)
+
+        then: "no exception is thrown"
+        noExceptionThrown()
+
+        and: "retry after is greater than 0"
+        assert retryAfterHeaders.get(0) == "100"
+    }
+
     @MockBean(Reader)
     @Named("local")
     Reader reader() {
@@ -73,5 +111,9 @@ class PipeReadControllerClusterChangeRateLimiterIntegrationSpec extends Specific
     @MockBean(LocationService)
     LocationService locationResolver() {
         Mock(LocationService)
+    }
+
+    void resetRateLimiter() {
+        sleep(1000)
     }
 }
