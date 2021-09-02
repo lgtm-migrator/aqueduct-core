@@ -178,4 +178,23 @@ class ServiceListSpec extends Specification {
         then: "the second service list can read the persisted values"
         serviceList2.stream().map({m -> m.getUrl()}).collect() == [URL_2, URL_3]
     }
+
+    def "service list contains last updated time"() {
+        given: "a service list"
+        ServiceList serviceList = new ServiceList(config, serviceInstance, existingPropertiesFile)
+        def list = [URL_1, URL_2, URL_3]
+
+        when: "service list is updated"
+        serviceList.update(list)
+
+        and: "last updated time is set"
+        def firstTime = serviceList.getLastUpdatedTime()
+
+        and: "service list is updated again"
+        serviceList.update(list)
+        def secondTime = serviceList.getLastUpdatedTime()
+
+        then: "last updated time has been changed"
+        secondTime.isAfter(firstTime)
+    }
 }

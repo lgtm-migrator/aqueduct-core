@@ -58,6 +58,11 @@ public class Node {
     private final ZonedDateTime lastSeen;
 
     /**
+     * Populated on client side
+     */
+    private final ZonedDateTime lastRegistrationTime;
+
+    /**
      * Fields populated by pipe
      */
     private final Map<String, String> pipe;

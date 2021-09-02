@@ -106,11 +106,19 @@ class PipeLoadBalancerSpec extends Specification {
         when: "we got an error from the client"
         serviceList.stream().findFirst().ifPresent({ c -> c.isUp(false) })
 
-        and: "we select anothet service"
+        and: "we select another service"
         def serviceInstance = fromPublisher(loadBalancer.select()).blockingGet()
 
         then: "we getting next instance"
         serviceInstance.URI.toString() == "http://a2"
+    }
+
+    def "returns last updated time"() {
+        when: "a list of urls"
+        serviceList.update([URL_1, URL_2, URL_3])
+
+        then: "get last updated time"
+        loadBalancer.getLastUpdatedTime() != null
     }
 
     ErsatzServer serverWithPipeStatus(int status) {

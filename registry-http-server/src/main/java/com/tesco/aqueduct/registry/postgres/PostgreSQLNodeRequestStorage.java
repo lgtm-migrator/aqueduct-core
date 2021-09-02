@@ -1,9 +1,10 @@
 package com.tesco.aqueduct.registry.postgres;
 
 import com.tesco.aqueduct.registry.model.BootstrapType;
-import com.tesco.aqueduct.registry.utils.RegistryLogger;
+import com.tesco.aqueduct.registry.model.Node;
 import com.tesco.aqueduct.registry.model.NodeRequest;
 import com.tesco.aqueduct.registry.model.NodeRequestStorage;
+import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
@@ -51,11 +52,17 @@ public class PostgreSQLNodeRequestStorage implements NodeRequestStorage {
     }
 
     @Override
-    public BootstrapType requiresBootstrap(String hostId) throws SQLException {
+    public BootstrapType requiresBootstrap(Node node) throws SQLException {
+
+        if(node.getLastRegistrationTime() != null
+            && node.getLastRegistrationTime().isBefore(ZonedDateTime.now().minusDays(30))) {
+            LOG.info("requiresBootstrap", node.getHost() + " stale device");
+        }
+
         try (Connection connection = getConnection()) {
-            BootstrapType bootstrapType = readBootstrapType(hostId, connection);
+            BootstrapType bootstrapType = readBootstrapType(node.getHost(), connection);
             if (bootstrapType != BootstrapType.NONE) {
-                updateReceivedBootstrap(connection, hostId);
+                updateReceivedBootstrap(connection, node.getHost());
             }
             return bootstrapType;
         } catch (SQLException exception) {

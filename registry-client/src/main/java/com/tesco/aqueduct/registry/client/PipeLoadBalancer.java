@@ -9,6 +9,7 @@ import org.reactivestreams.Publisher;
 import javax.annotation.Nullable;
 import javax.inject.Singleton;
 import java.net.URL;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,5 +36,9 @@ public class PipeLoadBalancer implements LoadBalancer {
             .filter(PipeServiceInstance::isUp)
             .map(PipeServiceInstance::getUrl)
             .collect(Collectors.toList());
+    }
+
+    public LocalDateTime getLastUpdatedTime() {
+        return services.getLastUpdatedTime();
     }
 }

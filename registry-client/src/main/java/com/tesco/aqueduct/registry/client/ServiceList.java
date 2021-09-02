@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -22,6 +23,7 @@ public class ServiceList {
     private List<PipeServiceInstance> services;
     private final PipeServiceInstance cloudInstance;
     private final File file;
+    private LocalDateTime lastUpdatedTime;
 
     public ServiceList(
         final HttpClientConfiguration configuration,
@@ -31,11 +33,12 @@ public class ServiceList {
         this.configuration = configuration;
         this.cloudInstance = pipeServiceInstance;
         services = new ArrayList<>();
+        lastUpdatedTime = null;
         this.file = file;
-        readUrls(file);
+        readServicesProperties(file);
     }
 
-    private void readUrls(File file) throws IOException {
+    private void readServicesProperties(File file) throws IOException {
         if (!file.exists()) {
             defaultToCloud();
             return;
@@ -45,6 +48,7 @@ public class ServiceList {
             properties.load(stream);
         }
         updateServices(readUrls(properties));
+        updateTime(readUpdatedTime(properties));
     }
 
     private List<URL> readUrls(Properties properties) {
@@ -64,13 +68,45 @@ public class ServiceList {
         return null;
     }
 
+    private void updateTime(LocalDateTime localDateTime) {
+        lastUpdatedTime = localDateTime;
+    }
+
+    private LocalDateTime readUpdatedTime(Properties properties) {
+        String lastRegistrationTime = properties.getProperty("lastRegistrationTime");
+        return lastRegistrationTime != null ? LocalDateTime.parse(lastRegistrationTime) : null;
+    }
+
     public void update(final List<URL> urls) {
         if (urls == null || urls.isEmpty()) {
             defaultToCloud();
             return;
         }
+        LocalDateTime currentDateTime = LocalDateTime.now();
+
         updateServices(urls);
-        persistUrls(urls);
+        updateTime(currentDateTime);
+
+        persistServiceProperties(urls, currentDateTime);
+    }
+
+    private void persistServiceProperties(List<URL> urls, LocalDateTime currentDateTime) {
+        Properties properties = new Properties();
+
+        String urlStrings = urls.stream().map(Object::toString).collect(Collectors.joining(","));
+        String registeredTime = currentDateTime.toString();
+
+        properties.setProperty("services", urlStrings);
+        properties.setProperty("lastRegistrationTime", registeredTime);
+
+        try (OutputStream outputStream = new FileOutputStream(file)) {
+            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
+                properties.store(outputStreamWriter, null);
+            }
+        } catch (IOException exception) {
+            LOG.error("persist", "Unable to persist service urls to properties file", exception);
+            throw new UncheckedIOException(exception);
+        }
     }
 
     private void updateServices(final List<URL> urls) {
@@ -81,21 +117,6 @@ public class ServiceList {
         services = urls.stream()
             .map(this::getServiceInstance)
             .collect(Collectors.toList());
-    }
-
-    private void persistUrls(List<URL> urls) {
-        Properties properties = new Properties();
-        String urlStrings = urls.stream().map(Object::toString).collect(Collectors.joining(","));
-        properties.setProperty("services", urlStrings);
-
-        try (OutputStream outputStream = new FileOutputStream(file)) {
-            try (OutputStreamWriter outputStreamWriter = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8)) {
-                properties.store(outputStreamWriter, null);
-            }
-        } catch (IOException exception) {
-            LOG.error("persist", "Unable to persist service urls to properties file", exception);
-            throw new UncheckedIOException(exception);
-        }
     }
 
     private void defaultToCloud() {
@@ -132,5 +153,9 @@ public class ServiceList {
 
     public Stream<PipeServiceInstance> stream() {
         return services.stream();
+    }
+
+    public LocalDateTime getLastUpdatedTime() {
+        return lastUpdatedTime;
     }
 }

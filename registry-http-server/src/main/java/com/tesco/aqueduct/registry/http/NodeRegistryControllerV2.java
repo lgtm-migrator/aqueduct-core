@@ -72,7 +72,7 @@ public class NodeRegistryControllerV2 {
         }
         LOG.withNode(node).info("register node: ", "node registered");
         final Node nodeRegistered = registry.register(node);
-        final BootstrapType bootstrapType = nodeRequestStorage.requiresBootstrap(node.getHost());
+        final BootstrapType bootstrapType = nodeRequestStorage.requiresBootstrap(node);
         LOG.withNode(nodeRegistered).info("requested to follow", "node registration complete");
         return new RegistryResponse(nodeRegistered.getRequestedToFollow(), bootstrapType);
     }

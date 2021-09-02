@@ -29,6 +29,7 @@ public class PostgresNodeGroup extends NodeGroup {
                 "0 " +
                 ")" +
                 "ON CONFLICT DO NOTHING; ";
+
     private static final String QUERY_UPDATE_GROUP =
         "UPDATE registry SET " +
                 "entry = ?::JSON , " +

@@ -2,10 +2,7 @@ package com.tesco.aqueduct.registry.postgres
 
 import com.opentable.db.postgres.junit.EmbeddedPostgresRules
 import com.opentable.db.postgres.junit.SingleInstancePostgresRule
-import com.tesco.aqueduct.registry.model.Bootstrap
-import com.tesco.aqueduct.registry.model.BootstrapType
-import com.tesco.aqueduct.registry.model.NodeRequest
-import com.tesco.aqueduct.registry.model.NodeRequestStorage
+import com.tesco.aqueduct.registry.model.*
 import groovy.sql.Sql
 import org.junit.ClassRule
 import spock.lang.AutoCleanup
@@ -18,8 +15,11 @@ import java.sql.DriverManager
 import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 class PostgresSQLNodeRequestStorageIntegrationSpec extends Specification {
+
+    def node = Node.builder().localUrl(new URL("http://host-id")).build()
 
     @ClassRule @Shared
     SingleInstancePostgresRule pg = EmbeddedPostgresRules.singleInstance()
@@ -50,6 +50,10 @@ class PostgresSQLNodeRequestStorageIntegrationSpec extends Specification {
         """)
 
         nodeRequestStorage = new PostgreSQLNodeRequestStorage(dataSource)
+    }
+
+    def cleanup() {
+        TestAppender.clearEvents()
     }
 
     def "When a node request is updated an entry is added to the database"() {
@@ -97,7 +101,7 @@ class PostgresSQLNodeRequestStorageIntegrationSpec extends Specification {
         nodeRequestStorage.save(new NodeRequest("host-id", new Bootstrap(bootstrapType, now)))
 
         when: "read is called with the host-id"
-        def returnedBootstrap = nodeRequestStorage.requiresBootstrap("host-id")
+        def returnedBootstrap = nodeRequestStorage.requiresBootstrap(node)
 
         then: "the BootstrapType is returned"
         returnedBootstrap == bootstrapType
@@ -112,10 +116,10 @@ class PostgresSQLNodeRequestStorageIntegrationSpec extends Specification {
         nodeRequestStorage.save(new NodeRequest("host-id", new Bootstrap(BootstrapType.PROVIDER, now)))
 
         when: "read is called with the host-id"
-        def firstReturnedBootstrap = nodeRequestStorage.requiresBootstrap("host-id")
+        def firstReturnedBootstrap = nodeRequestStorage.requiresBootstrap(node)
 
         and: "read is called for a second time"
-        def secondReturnedBootstrap = nodeRequestStorage.requiresBootstrap("host-id")
+        def secondReturnedBootstrap = nodeRequestStorage.requiresBootstrap(node)
 
         then: "bootstrap is only returned once"
         firstReturnedBootstrap == BootstrapType.PROVIDER
@@ -126,9 +130,37 @@ class PostgresSQLNodeRequestStorageIntegrationSpec extends Specification {
         given: "the node request doesn't exist"
 
         when: "read is called with the host-id"
-        def response = nodeRequestStorage.requiresBootstrap("host-id")
+        def response = nodeRequestStorage.requiresBootstrap(node)
 
         then: "bootstrap is not returned"
         response == BootstrapType.NONE
+    }
+
+    @Unroll
+    def "#comment"() {
+        given: "a node with last registration time"
+        def node = Node.builder()
+            .localUrl(new URL("http://test_node_1"))
+            .lastRegistrationTime(lastRegistrationTime)
+            .build()
+
+        when: "we check if it requires a bootstrap"
+        def bootstrapType = nodeRequestStorage.requiresBootstrap(node)
+
+        then: "bootstrap type is none"
+        bootstrapType == BootstrapType.NONE
+
+        and: "count of stale devices log is consistent with expectation"
+        TestAppender.getEvents().stream()
+        .filter {
+            it.loggerName.contains("PostgreSQLNodeRequestStorage")
+            && it.message.contains("stale device")
+        }.count() == expectedLogCount
+
+        where:
+        lastRegistrationTime              | comment                                                          | expectedLogCount
+        ZonedDateTime.now().minusDays(31) | "Node offline for more than 30 days receives bootstrap"          | 1
+        ZonedDateTime.now().minusDays(29) | "Node offline for less than 30 days does not receive bootstrap"  | 0
+        null                              | "Node with no last registration time does not receive bootstrap" | 0
     }
 }
