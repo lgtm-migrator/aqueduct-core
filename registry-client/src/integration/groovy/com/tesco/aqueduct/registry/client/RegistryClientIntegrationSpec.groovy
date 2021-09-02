@@ -46,7 +46,7 @@ class RegistryClientIntegrationSpec extends Specification {
             .build()
             .properties(
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
-                "registry.http.client.interval": "1m",
+                "registry.http.interval": "1m",
                 "registry.http.client.delay": "500ms",
                 "registry.http.client.attempts": "1",
                 "registry.http.client.reset": "1s",

@@ -15,7 +15,7 @@ import javax.inject.Named;
 import java.time.Duration;
 
 @Context
-@Requires(property = "pipe.http.registration.interval")
+@Requires(property = "registry.http.interval")
 public class SelfRegistrationTask {
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(SelfRegistrationTask.class));
 
@@ -37,7 +37,7 @@ public class SelfRegistrationTask {
         @Named("pipe") final Bootstrapable pipe,
         @Named("controller") final Bootstrapable controller,
         @Named("corruptionManager") Resetable corruptionManager,
-        @Property(name = "pipe.http.registration.interval") String retryInterval,
+        @Property(name = "registry.http.interval") String retryInterval,
         @Value("${pipe.bootstrap.delay:300000}") final int additionalDelay // 5 minutes extra to allow all nodes to reset
     ) {
         this.client = client;
@@ -50,7 +50,7 @@ public class SelfRegistrationTask {
         this.bootstrapDelayMs = Duration.parse("PT" + retryInterval).toMillis() + additionalDelay;
     }
 
-    @Scheduled(fixedRate = "${pipe.http.registration.interval}")
+    @Scheduled(fixedRate = "${registry.http.interval}")
     void register() {
         try {
             final Node node = selfSummary.getSelfNode();

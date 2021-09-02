@@ -10,7 +10,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.retry.annotation.CircuitBreaker;
 
 @Client("${registry.http.client.url}")
-@Requires(property = "registry.http.client.interval")
+@Requires(property = "registry.http.interval")
 public interface RegistryClient {
     @CircuitBreaker(delay = "${registry.http.client.delay}", attempts = "${registry.http.client.attempts}", reset = "${registry.http.client.reset}")
     @Post(uri = "/registry")
