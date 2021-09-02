@@ -22,7 +22,8 @@ public class Message {
     private final ZonedDateTime created;
     private final String data;
     @JsonIgnore private final Long size;
-    @JsonIgnore private final Long locationGroup;
+    @JsonIgnore private final Long clusterId;
+    @JsonIgnore private final Long routingId;
 
     private static final int MAX_OFFSET_LENGTH = 19;
     private static final int MAX_DATE_LENGTH = 64;
@@ -51,7 +52,7 @@ public class Message {
         final String data,
         final Long size
     ) {
-        this(type, key, contentType, offset, created, data, size, null);
+        this(type, key, contentType, offset, created, data, size, null, null);
     }
 
     public Message(
@@ -62,7 +63,8 @@ public class Message {
         final ZonedDateTime created,
         final String data,
         final Long size,
-        final Long locationGroup
+        final Long clusterId,
+        final Long routingId
     ) {
         this.offset = offset;
         this.key = key;
@@ -71,6 +73,7 @@ public class Message {
         this.created = created;
         this.data = data;
         this.size = size;
-        this.locationGroup = locationGroup;
+        this.clusterId = clusterId;
+        this.routingId = routingId;
     }
 }

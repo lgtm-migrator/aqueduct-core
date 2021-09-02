@@ -21,10 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -138,7 +135,7 @@ public class PipeReadController implements Bootstrapable {
         return
             messages.get(0).getCreated().isAfter(ZonedDateTime.now().minus(clusterChangeThreshold))
             &&
-            messages.stream().anyMatch(message -> message.getLocationGroup() != null);
+            messages.stream().anyMatch(message -> !Objects.equals(message.getClusterId(), message.getRoutingId()));
     }
 
     private boolean isBootstrappingAndCapacityAvailable(List<Message> messages) {
