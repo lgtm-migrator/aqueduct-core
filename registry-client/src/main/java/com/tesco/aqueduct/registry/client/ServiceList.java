@@ -23,7 +23,7 @@ public class ServiceList {
     private List<PipeServiceInstance> services;
     private final PipeServiceInstance cloudInstance;
     private final File file;
-    private LocalDateTime lastUpdatedTime;
+    private ZonedDateTime lastUpdatedTime;
 
     public ServiceList(
         final HttpClientConfiguration configuration,
@@ -68,13 +68,13 @@ public class ServiceList {
         return null;
     }
 
-    private void updateTime(LocalDateTime localDateTime) {
-        lastUpdatedTime = localDateTime;
+    private void updateTime(ZonedDateTime zonedDateTime) {
+        lastUpdatedTime = zonedDateTime;
     }
 
-    private LocalDateTime readUpdatedTime(Properties properties) {
+    private ZonedDateTime readUpdatedTime(Properties properties) {
         String lastRegistrationTime = properties.getProperty("lastRegistrationTime");
-        return lastRegistrationTime != null ? LocalDateTime.parse(lastRegistrationTime) : null;
+        return lastRegistrationTime != null ? ZonedDateTime.parse(lastRegistrationTime) : null;
     }
 
     public void update(final List<URL> urls) {
@@ -82,7 +82,7 @@ public class ServiceList {
             defaultToCloud();
             return;
         }
-        LocalDateTime currentDateTime = LocalDateTime.now();
+        ZonedDateTime currentDateTime = ZonedDateTime.now();
 
         updateServices(urls);
         updateTime(currentDateTime);
@@ -90,7 +90,7 @@ public class ServiceList {
         persistServiceProperties(urls, currentDateTime);
     }
 
-    private void persistServiceProperties(List<URL> urls, LocalDateTime currentDateTime) {
+    private void persistServiceProperties(List<URL> urls, ZonedDateTime currentDateTime) {
         Properties properties = new Properties();
 
         String urlStrings = urls.stream().map(Object::toString).collect(Collectors.joining(","));
@@ -155,7 +155,7 @@ public class ServiceList {
         return services.stream();
     }
 
-    public LocalDateTime getLastUpdatedTime() {
+    public ZonedDateTime getLastUpdatedTime() {
         return lastUpdatedTime;
     }
 }

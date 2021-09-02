@@ -10,6 +10,7 @@ import javax.annotation.Nullable;
 import javax.inject.Singleton;
 import java.net.URL;
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,7 +39,7 @@ public class PipeLoadBalancer implements LoadBalancer {
             .collect(Collectors.toList());
     }
 
-    public LocalDateTime getLastUpdatedTime() {
+    public ZonedDateTime getLastUpdatedTime() {
         return services.getLastUpdatedTime();
     }
 }
