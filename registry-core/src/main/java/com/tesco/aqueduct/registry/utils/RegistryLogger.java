@@ -54,6 +54,7 @@ public class RegistryLogger {
                 .collect(Collectors.joining(","))
         );
         fields.put("lastSeen", String.valueOf(node.getLastSeen()));
+        fields.put("lastRegistrationTime", String.valueOf(node.getLastRegistrationTime()));
 
         if(node.getPipe() != null) {
             node.getPipe().entrySet().forEach(e ->
