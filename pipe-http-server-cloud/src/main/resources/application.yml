@@ -45,6 +45,7 @@ datasources:
     maximum-pool-size: 10
     max-lifetime: 600000
     leak-detection-threshold: 60000
+    validation-timeout: 250
   registry:
     jdbc-url: "jdbc:postgresql://${POSTGRE_SERVER}/${POSTGRE_DATABASE}"
     username: "${POSTGRE_USERNAME}"
@@ -53,6 +54,7 @@ datasources:
     maximum-pool-size: 10
     max-lifetime: 600000
     leak-detection-threshold: 60000
+    validation-timeout: 250
   compaction:
     jdbc-url: "jdbc:postgresql://${POSTGRE_SERVER}/${POSTGRE_DATABASE}"
     username: "${POSTGRE_USERNAME}"
@@ -61,6 +63,7 @@ datasources:
     maximum-pool-size: 1
     max-lifetime: 600000
     leak-detection-threshold: 300000
+    validation-timeout: 250
 
 authentication:
   identity:
