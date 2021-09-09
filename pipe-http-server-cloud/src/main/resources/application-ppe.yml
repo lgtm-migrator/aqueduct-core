@@ -38,7 +38,7 @@ authentication:
 
 persistence:
   compact:
-    schedule.cron: "0 14 0/1 * * ?"
+    schedule.cron: "0 */5 * * * ?"
     deletions:
       enabled: true
       threshold: 30d
