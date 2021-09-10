@@ -49,3 +49,7 @@ persistence:
     expected-node-count: 3000
     cluster-db-pool-size: 24
     work-mem-mb: 2000
+
+micronaut:
+  metrics.binders:
+    jdbc.enabled: true
