@@ -3,7 +3,7 @@ micronaut:
     jvm.enabled: true
     web.enabled: true
     processor.enabled: true
-    jdbc.enabled: false
+    jdbc.enabled: true
   security:
     enabled: true
     token.jwt:
