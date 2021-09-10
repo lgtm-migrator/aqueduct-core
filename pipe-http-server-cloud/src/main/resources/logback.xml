@@ -15,6 +15,10 @@
         <appender-ref ref="stdout"/>
     </logger>
 
+    <logger name="com.zaxxer.hikari" level="DEBUG" additivity="false">
+        <appender-ref ref="stdout"/>
+    </logger>
+
     <root level="${LOG_LEVEL:-info}">
         <appender-ref ref="stdout"/>
     </root>

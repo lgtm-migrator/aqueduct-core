@@ -19,6 +19,10 @@
         </encoder>
     </appender>
 
+    <logger name="com.zaxxer.hikari" level="TRACE">
+        <appender-ref ref="stdout"/>
+    </logger>
+
     <root level="${LOG_LEVEL:-info}">
         <appender-ref ref="test-appender"/>
         <appender-ref ref="stdout"/>
