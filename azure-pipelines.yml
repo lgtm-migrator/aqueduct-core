@@ -1,0 +1,90 @@
+resources:
+  repositories:
+    - repository: pipelineLibrary
+      type: githubenterprise
+      endpoint: enterpriseEndpoint
+      name: messaging/aqueduct_pipeline_library
+    - repository: systemTests
+      type: githubenterprise
+      endpoint: enterpriseEndpoint
+      name: messaging/magic_pipe_system_tests
+
+stages:
+  - stage: pipeline
+    displayName: Run pipeline
+    jobs:
+      - job: pipeline
+        variables:
+          - group: docker-variables
+          - group: keyvault-group
+          - name: 'version'
+            value: '0'
+        displayName: Run pipeline
+        pool:
+          vmImage: 'ubuntu-20.04'
+
+        steps:
+          - checkout: self
+            displayName: Checkout Aqueduct Core
+
+          - checkout: pipelineLibrary
+            displayName: Checkout Pipeline Library
+
+          - checkout: systemTests
+            displayName: Checkout System Tests
+
+          - task: JavaToolInstaller@0
+            inputs:
+              versionSpec: '8'
+              jdkArchitectureOption: 'x64'
+              jdkSourceOption: 'PreInstalled'
+
+          - template: templates/build-and-test.yml@pipelineLibrary
+            parameters:
+              projectName: 'aqueduct-core'
+              assembleWithCredentials: true
+              nexusUsername: '$(nexus-username)'
+              nexusPassword: '$(nexus-password)'
+              publishCodeAnalysis: false
+
+          - template: templates/docker-build-and-scan.yml@pipelineLibrary
+            parameters:
+              projectName: 'aqueduct-core'
+              containerRegistry: '$(containerRegistry)'
+              imageRepository: '$(imageRepository)'
+              dockerPath: 'pipe-http-server-cloud'
+
+          - template: templates/system-test.yml@pipelineLibrary
+            parameters:
+              azureSubscription: azure-subscription
+              containerRegistry: '$(containerRegistry)'
+              aqueductPipeImageVersion: integration-$(Build.SourceVersion)
+
+          - template: templates/deploy-project.yml@pipelineLibrary
+            parameters:
+              projectName: 'aqueduct-core'
+              environment: 'ppe'
+              release: true
+              publish: true
+              githubUrl: 'github.com'
+              installGroovy: true
+              containerRegistry: '$(containerRegistry)'
+              imageRepository: '$(imageRepository)'
+              runscopeToken: '$(runscope-token)'
+              scriptNames: 'get_pipe'
+              version: '$(version)'
+              nexusUsername: '$(nexus-username)'
+              nexusPassword: '$(nexus-password)'
+
+          - template: templates/deploy-project.yml@pipelineLibrary
+            parameters:
+              projectName: 'aqueduct-core'
+              environment: 'live'
+              containerRegistry: '$(containerRegistry)'
+              imageRepository: '$(imageRepository)'
+              runscopeToken: '$(runscope-token)'
+              scriptNames: 'get_pipe'
+              version: '$(version)'
+              nexusUsername: '$(nexus-username)'
+              nexusPassword: '$(nexus-password)'
+              tagLatest: true
