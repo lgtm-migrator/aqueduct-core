@@ -1,7 +1,7 @@
 package Helper
 
-import com.stehno.ersatz.Decoders
 import com.stehno.ersatz.ErsatzServer
+import com.stehno.ersatz.encdec.Decoders
 import groovy.json.JsonOutput
 
 class IdentityMock {
@@ -47,7 +47,7 @@ class IdentityMock {
         ])
 
         identityMock.expectations {
-            post(ISSUE_TOKEN_PATH) {
+            POST(ISSUE_TOKEN_PATH) {
                 body(requestJson, "application/json")
                 header("Accept", "application/token+json")
                 header("Content-Type", "application/json")
@@ -72,7 +72,7 @@ class IdentityMock {
         def json = JsonOutput.toJson([access_token: accessToken])
 
         identityMock.expectations {
-            post(VALIDATE_PATH) {
+            POST(VALIDATE_PATH) {
                 queries("client_id": "$clientIdAndSecret")
                 body(json, "application/json")
                 called(1)

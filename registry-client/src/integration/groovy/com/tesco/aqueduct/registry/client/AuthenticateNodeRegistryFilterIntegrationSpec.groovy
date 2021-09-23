@@ -30,7 +30,7 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
 
         def server = new ErsatzServer({
             expectations {
-                post("/v2/registry") {
+                POST("/v2/registry") {
                     called(1)
 
                     header("Authorization", "Bearer someToken")
@@ -81,7 +81,7 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
 
         def server = new ErsatzServer({
             expectations {
-                post("/messaging/v2/registry") {
+                POST("/messaging/v2/registry") {
                     header("Accept-Encoding", "gzip, deflate")
                     header("Authorization", "Bearer someToken")
                     called(1)

@@ -1,8 +1,8 @@
 import Helper.SqlWrapper
 import com.opentable.db.postgres.junit.EmbeddedPostgresRules
 import com.opentable.db.postgres.junit.SingleInstancePostgresRule
-import com.stehno.ersatz.Decoders
 import com.stehno.ersatz.ErsatzServer
+import com.stehno.ersatz.encdec.Decoders
 import com.tesco.aqueduct.pipe.TestAppender
 import com.tesco.aqueduct.pipe.api.OffsetName
 import com.tesco.aqueduct.pipe.api.Reader
@@ -688,7 +688,7 @@ class NodeRegistryControllerV2IntegrationSpec extends Specification {
         def json = JsonOutput.toJson([access_token: identityToken])
 
         identityMock.expectations {
-            post(VALIDATE_TOKEN_BASE_PATH) {
+            POST(VALIDATE_TOKEN_BASE_PATH) {
                 queries("client_id": [clientIdAndSecret])
                 body(json, "application/json")
                 .header("TraceId", everyItem(traceIdMatcher))
@@ -731,7 +731,7 @@ class NodeRegistryControllerV2IntegrationSpec extends Specification {
 
     def denySingleIdentityTokenValidationRequest() {
         identityMock.expectations {
-            post(VALIDATE_TOKEN_BASE_PATH) {
+            POST(VALIDATE_TOKEN_BASE_PATH) {
                 called(1)
                 responder {
                     header("Content-Type", "application/json;charset=UTF-8")

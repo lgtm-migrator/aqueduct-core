@@ -1,5 +1,5 @@
-import com.stehno.ersatz.Decoders
 import com.stehno.ersatz.ErsatzServer
+import com.stehno.ersatz.encdec.Decoders
 import com.tesco.aqueduct.pipe.api.*
 import groovy.json.JsonOutput
 import io.micronaut.context.ApplicationContext
@@ -245,7 +245,7 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
         def json = JsonOutput.toJson([access_token: identityToken])
 
         identityMock.expectations {
-            post(VALIDATE_TOKEN_BASE_PATH) {
+            POST(VALIDATE_TOKEN_BASE_PATH) {
                 queries("client_id": [clientIdAndSecret])
                 body(json, "application/json")
                 called(1)
@@ -287,7 +287,7 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
 
     def denySingleIdentityTokenValidationRequest() {
         identityMock.expectations {
-            post(VALIDATE_TOKEN_BASE_PATH) {
+            POST(VALIDATE_TOKEN_BASE_PATH) {
                 called(1)
                 responder {
                     header("Content-Type", "application/json;charset=UTF-8")

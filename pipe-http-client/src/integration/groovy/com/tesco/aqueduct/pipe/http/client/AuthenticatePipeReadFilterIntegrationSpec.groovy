@@ -33,7 +33,7 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
         given: "latest offset requiring authentication"
         server = new ErsatzServer({
             expectations {
-                get("/pipe/100") {
+                GET("/pipe/100") {
                     queries(type: type, location: location)
                     called(1)
                     header("Authorization", "Bearer someToken")
@@ -94,7 +94,7 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
                 basic 'admin', 'my-password'
             }
             expectations {
-                get("/pipe/100") {
+                GET("/pipe/100") {
                     queries(type: type, location: location)
                     called(1)
 

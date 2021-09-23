@@ -1,7 +1,7 @@
 package Helper
 
-import com.stehno.ersatz.Decoders
 import com.stehno.ersatz.ErsatzServer
+import com.stehno.ersatz.encdec.Decoders
 
 import static java.util.stream.Collectors.joining
 
@@ -46,7 +46,7 @@ class LocationMock {
         def revisionId = clusters.isEmpty() ? null : "2"
 
         locationMockService.expectations {
-            get(LOCATION_PATH + locationPathIncluding(locationUuid)) {
+            GET(LOCATION_PATH + locationPathIncluding(locationUuid)) {
                 header("Authorization", "Bearer " + accessToken)
                 called(1)
 
@@ -65,7 +65,7 @@ class LocationMock {
 
     void returningError(String locationUuid, int status, int invocationCount) {
         locationMockService.expectations {
-            get(LOCATION_PATH + locationPathIncluding(locationUuid)) {
+            GET(LOCATION_PATH + locationPathIncluding(locationUuid)) {
                 header("Authorization", "Bearer " + accessToken)
                 called(invocationCount)
                 responder {
@@ -77,7 +77,7 @@ class LocationMock {
 
     void returnEmptyBody(String locationUuid) {
         locationMockService.expectations {
-            get(LOCATION_PATH + locationPathIncluding(locationUuid)) {
+            GET(LOCATION_PATH + locationPathIncluding(locationUuid)) {
                 header("Authorization", "Bearer " + accessToken)
                 called(1)
 

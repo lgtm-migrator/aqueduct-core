@@ -9,6 +9,8 @@ resources:
       endpoint: enterpriseEndpoint
       name: messaging/magic_pipe_system_tests
 
+pr: none
+
 stages:
   - stage: pipeline
     displayName: Run pipeline
@@ -32,12 +34,6 @@ stages:
 
           - checkout: systemTests
             displayName: Checkout System Tests
-
-          - task: JavaToolInstaller@0
-            inputs:
-              versionSpec: '8'
-              jdkArchitectureOption: 'x64'
-              jdkSourceOption: 'PreInstalled'
 
           - template: templates/build-and-test.yml@pipelineLibrary
             parameters:

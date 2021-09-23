@@ -21,7 +21,7 @@ class TimedDistributedStorageIntegrationSpec extends Specification {
     def meterRegistry = Mock(MeterRegistry)
 
     ZonedDateTime currentUTCTime() {
-        ZonedDateTime.now().withZoneSameInstant(ZoneId.of("UTC"))
+        ZonedDateTime.now(ZoneId.of("UTC")).truncatedTo(java.time.temporal.ChronoUnit.MILLIS)
     }
 
     def message(long offset) {
@@ -111,7 +111,7 @@ class TimedDistributedStorageIntegrationSpec extends Specification {
         def offset = 1023L
 
         given: 'a message'
-        Message message = message(offset)
+        Message expected = message(offset)
 
         when: 'we use the sqliteStorage to create a connection'
         SQLiteStorage sqliteStorage = new SQLiteStorage(successfulDataSource(), LIMIT, 10, BATCH_SIZE)
@@ -120,14 +120,14 @@ class TimedDistributedStorageIntegrationSpec extends Specification {
         TimedDistributedStorage storage = new TimedDistributedStorage(sqliteStorage, meterRegistry)
 
         and: 'store the message to the database'
-        storage.write(message)
+        storage.write(expected)
 
         and: 'we retrieve the message from the database'
         MessageResults messageResults = storage.read(null, offset, "locationUuid")
-        Message retrievedMessage = messageResults.messages.get(0)
+        Message actual = messageResults.messages.get(0)
 
         then: 'the message retrieved should be what we saved'
         notThrown(Exception)
-        message == retrievedMessage
+        actual == expected
     }
 }

@@ -1,6 +1,5 @@
-import com.stehno.ersatz.Decoders
 import com.stehno.ersatz.ErsatzServer
-import com.stehno.ersatz.junit.ErsatzServerRule
+import com.stehno.ersatz.encdec.Decoders
 import com.tesco.aqueduct.pipe.location.LocationServiceClient
 import groovy.json.JsonOutput
 import io.micronaut.context.ApplicationContext
@@ -43,7 +42,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
             reportToConsole()
         })
 
-        identityMockService = new ErsatzServerRule({
+        identityMockService = new ErsatzServer({
             decoder('application/json', Decoders.utf8String)
             reportToConsole()
         })
@@ -168,7 +167,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
 
     private void locationServiceReturningListOfClustersForGiven(String locationUuid) {
         locationMockService.expectations {
-            get(LOCATION_BASE_PATH + locationPathIncluding(locationUuid)) {
+            GET(LOCATION_BASE_PATH + locationPathIncluding(locationUuid)) {
                 header("Authorization", "Bearer ${ACCESS_TOKEN}")
                 called(1)
 
@@ -190,7 +189,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
 
     private void locationServiceReturningError(String locationUuid) {
         locationMockService.expectations {
-            get(LOCATION_BASE_PATH + locationPathIncluding(locationUuid)) {
+            GET(LOCATION_BASE_PATH + locationPathIncluding(locationUuid)) {
                 header("Authorization", "Bearer ${ACCESS_TOKEN}")
                 called(4)
 
@@ -205,7 +204,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
 
     private void locationServiceNotInvoked(String locationUuid) {
         locationMockService.expectations {
-            get(LOCATION_BASE_PATH + locationPathIncluding(locationUuid)) {
+            GET(LOCATION_BASE_PATH + locationPathIncluding(locationUuid)) {
                 header("Authorization", "Bearer ${ACCESS_TOKEN}")
                 called(0)
             }.query(CLUSTER_QUERY_PARAM, CLUSTER_QUERY_PARAM_VALUE)
@@ -222,7 +221,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
         ])
 
         identityMockService.expectations {
-            post(ISSUE_TOKEN_PATH) {
+            POST(ISSUE_TOKEN_PATH) {
                 body(requestJson, "application/json")
                 header("Accept", "application/token+json")
                 called(1)
@@ -252,7 +251,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
         ])
 
         identityMockService.expectations {
-            post(ISSUE_TOKEN_PATH) {
+            POST(ISSUE_TOKEN_PATH) {
                 body(requestJson, "application/json")
                 header("Accept", "application/token+json")
                 called(1)

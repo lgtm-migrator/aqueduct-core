@@ -1,4 +1,4 @@
-FROM library/openjdk:8-jre
+FROM library/openjdk:11
 
 MAINTAINER Technology_Retail_PriceService_UK_5 <Technology_Retail_PriceService_UK_5@tesco.com>
 

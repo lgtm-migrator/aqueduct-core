@@ -122,6 +122,7 @@ subprojects {
                 implementation 'io.micronaut:micronaut-management'
                 implementation 'io.micronaut.micrometer:micronaut-micrometer-core'
                 implementation 'io.micronaut:micronaut-tracing'
+                implementation 'javax.cache:cache-api:1.1.1'
 
                 implementation 'io.micronaut:micronaut-inject'
                 implementation 'io.micronaut:micronaut-runtime'
@@ -205,8 +206,8 @@ subprojects {
         ]
     }
 
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+    sourceCompatibility = 1.11
+    targetCompatibility = 1.11
 
     group 'com.tesco.aqueduct'
 
@@ -227,7 +228,7 @@ subprojects {
 
     dependencyManagement {
         imports {
-            mavenBom 'io.micronaut:micronaut-bom:2.1.2'
+            mavenBom 'io.micronaut:micronaut-bom:2.5.13'
         }
     }
 
@@ -237,7 +238,7 @@ subprojects {
         testImplementation 'org.spockframework:spock-core:2.0-M3-groovy-3.0'
         testImplementation 'io.rest-assured:rest-assured:4.3.1'
 
-        testImplementation 'com.stehno.ersatz:ersatz:1.9.0:safe@jar'
+        testImplementation 'com.stehno.ersatz:ersatz:2.0.0:safe@jar'
 
         testImplementation 'ch.qos.logback:logback-classic:1.2.3'
         testImplementation 'ch.qos.logback.contrib:logback-json-classic:0.1.5'

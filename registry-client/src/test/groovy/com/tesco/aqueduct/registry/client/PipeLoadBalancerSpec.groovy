@@ -1,8 +1,7 @@
 package com.tesco.aqueduct.registry.client
 
-import com.stehno.ersatz.ErsatzServer
+
 import io.micronaut.http.client.DefaultHttpClientConfiguration
-import io.micronaut.http.uri.UriBuilder
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
@@ -119,40 +118,5 @@ class PipeLoadBalancerSpec extends Specification {
 
         then: "get last updated time"
         loadBalancer.getLastUpdatedTime() != null
-    }
-
-    ErsatzServer serverWithPipeStatus(int status) {
-        ErsatzServer server = new ErsatzServer()
-        server.expectations {
-            get("/pipe/_status") {
-                called(1)
-
-                responder {
-                    contentType('application/json')
-                    body("""[]""")
-                    code(status)
-                }
-            }
-        }
-
-        return server
-    }
-
-    ErsatzServer serverWithPipeStatus(String path, int status) {
-        ErsatzServer server = new ErsatzServer()
-        server.expectations {
-            String urlAsString = UriBuilder.of(URI.create(path)).path("/pipe/_status").build().toString();
-            get(urlAsString) {
-                called(1)
-
-                responder {
-                    contentType('application/json')
-                    body("""[]""")
-                    code(status)
-                }
-            }
-        }
-
-        return server
     }
 }

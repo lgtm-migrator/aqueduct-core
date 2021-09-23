@@ -7,7 +7,6 @@ dependencies {
     addSlf4jDependencies()
     implementation 'org.xerial:sqlite-jdbc:3.32.3.3'
     implementation 'io.micronaut.micrometer:micronaut-micrometer-core'
-    implementation 'com.fasterxml.jackson.core:jackson-databind:2.10.0'
 }
 
 addPublish()

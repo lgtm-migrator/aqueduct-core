@@ -90,7 +90,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
 
         serverA.expectations {
             def offset = 0
-            get("/pipe/$offset") {
+            GET("/pipe/$offset") {
                 called(1)
 
                 responder {
@@ -110,7 +110,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
                     ]""")
                 }
             }
-            get("/pipe/${offset + 1}") {
+            GET("/pipe/${offset + 1}") {
                 called(greaterThanOrEqualTo(1))
 
                 responder {
@@ -121,7 +121,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
 
         serverB.expectations {
             def offset = 1
-            get("/pipe/$offset") {
+            GET("/pipe/$offset") {
                 called(1)
 
                 responder {
@@ -169,7 +169,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
         def basePath = "/foo"
         serverA.expectations {
             def offset = 0
-            get("$basePath/pipe/$offset") {
+            GET("$basePath/pipe/$offset") {
                 called(1)
                 responder {
                     header(HttpHeaders.RETRY_AFTER, "0")
@@ -206,7 +206,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
         setupContext("pipe.http.client.healthcheck.interval": "1s")
 
         serverA.expectations {
-            get("/pipe/_status") {
+            GET("/pipe/_status") {
                 called(greaterThanOrEqualTo(1))
 
                 responder {

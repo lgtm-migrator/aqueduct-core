@@ -8,10 +8,10 @@ import spock.lang.Specification
 @Newify(URL)
 class ServiceListSpec extends Specification {
 
-    final static URL URL_1 = URL("http://a1")
-    final static URL URL_2 = URL("http://a2")
-    final static URL URL_3 = URL("http://a3")
-    final PipeServiceInstance serviceInstance = new PipeServiceInstance(config, URL_1)
+    private final static URL URL_1 = URL("http://a1")
+    private final static URL URL_2 = URL("http://a2")
+    private final static URL URL_3 = URL("http://a3")
+    private PipeServiceInstance serviceInstance = new PipeServiceInstance(config, URL_1)
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder()

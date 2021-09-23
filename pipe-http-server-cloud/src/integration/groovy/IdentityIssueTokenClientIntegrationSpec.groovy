@@ -1,5 +1,5 @@
-import com.stehno.ersatz.Decoders
 import com.stehno.ersatz.ErsatzServer
+import com.stehno.ersatz.encdec.Decoders
 import com.tesco.aqueduct.pipe.identity.issuer.IdentityIssueTokenClient
 import com.tesco.aqueduct.pipe.identity.issuer.IssueTokenRequest
 import groovy.json.JsonOutput
@@ -87,7 +87,7 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
         ])
 
         identityMockService.expectations {
-            post(ISSUE_TOKEN_PATH) {
+            POST(ISSUE_TOKEN_PATH) {
                 body(requestJson, "application/json")
                 header("Accept", "application/token+json")
                 header("Content-Type", "application/json")
@@ -134,7 +134,7 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
         ])
 
         identityMockService.expectations {
-            post(ISSUE_TOKEN_PATH) {
+            POST(ISSUE_TOKEN_PATH) {
                 body(requestJson, "application/json")
                 header("Accept", "application/token+json")
                 called(4)

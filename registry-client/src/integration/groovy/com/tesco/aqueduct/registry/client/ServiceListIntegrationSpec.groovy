@@ -62,7 +62,7 @@ class ServiceListIntegrationSpec extends Specification {
     ErsatzServer serverWithPipeStatus(int status) {
         ErsatzServer server = new ErsatzServer()
         server.expectations {
-            get("/pipe/_status") {
+            GET("/pipe/_status") {
                 called(1)
 
                 responder {
@@ -80,7 +80,7 @@ class ServiceListIntegrationSpec extends Specification {
         ErsatzServer server = new ErsatzServer()
         server.expectations {
             String urlAsString = UriBuilder.of(URI.create(path)).path("/pipe/_status").build().toString();
-            get(urlAsString) {
+            GET(urlAsString) {
                 called(1)
 
                 responder {

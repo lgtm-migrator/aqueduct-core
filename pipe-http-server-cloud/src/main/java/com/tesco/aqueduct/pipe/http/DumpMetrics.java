@@ -9,7 +9,6 @@ import org.slf4j.MDC;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.validation.constraints.NotNull;
 import java.util.Collections;
 import java.util.SortedSet;
 
@@ -36,7 +35,7 @@ public class DumpMetrics {
             .forEach(tag -> dumpTag(metricName, tag));
     }
 
-    private void dumpTag(final String metricName, @NotNull final MetricsEndpoint.AvailableTag tag) {
+    private void dumpTag(final String metricName, final MetricsEndpoint.AvailableTag tag) {
         try {
             tag.getValues().stream()
                 .filter(v -> !v.contains("client_id="))

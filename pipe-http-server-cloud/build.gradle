@@ -30,6 +30,7 @@ dependencies {
     testImplementation 'com.opentable.components:otj-pg-embedded:0.13.0'
     testImplementation 'org.brotli:dec:0.1.2'
     testImplementation project(":pipe-storage-memory")
+    testImplementation 'com.github.tomakehurst:wiremock-jre8:2.27.1'
 
     addBrotliTestDependencies()
 }

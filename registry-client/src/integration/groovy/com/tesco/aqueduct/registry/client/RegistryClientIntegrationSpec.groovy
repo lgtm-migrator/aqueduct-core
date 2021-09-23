@@ -70,7 +70,7 @@ class RegistryClientIntegrationSpec extends Specification {
 
         and: "a fake response from the server"
         server.expectations {
-            post("/v2/registry") {
+            POST("/v2/registry") {
                 header("Accept-Encoding", "gzip, deflate")
                 called(1)
 
@@ -79,7 +79,7 @@ class RegistryClientIntegrationSpec extends Specification {
                     body("""{"requestedToFollow" : [ "$host1", "$host2" ], "bootstrapType" : "NONE"}""")
                 }
             }
-            get("/pipe/_status") {
+            GET("/pipe/_status") {
                 called(1)
                 responder {
                     contentType("application/json")

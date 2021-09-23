@@ -7,11 +7,13 @@ import spock.lang.Specification
 import static com.tesco.aqueduct.pipe.api.OffsetName.GLOBAL_LATEST_OFFSET
 
 class TimedDistributedStorageSpec extends Specification {
-    final long OFFSET = 1
-    final Message MOCK_MESSAGE = Mock(Message)
-    final List<String> MESSAGE_TYPES = []
-    final SimpleMeterRegistry METER_REGISTRY = Spy(SimpleMeterRegistry)
-    final String LOCATION_UUID = "locationUuid"
+
+    private static final long OFFSET = 1
+    private static final String LOCATION_UUID = "locationUuid"
+    private static final List<String> MESSAGE_TYPES = []
+
+    private Message MOCK_MESSAGE = Mock(Message)
+    private SimpleMeterRegistry METER_REGISTRY = Spy(SimpleMeterRegistry)
 
     def "read events are timed"() {
         given: "we have an instance of TimedMessageStorage"
