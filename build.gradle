@@ -2,20 +2,20 @@ buildscript {
     repositories {
         maven {
             url "https://nexus.ourtesco.com/repository/maven-central/"
-            if (project.hasProperty('mavenUser')) {
+            if (project.hasProperty('mavenCloudUsername')) {
                 credentials {
-                    username "$mavenUser"
-                    password "$mavenPassword"
+                    username "$mavenCloudUsername"
+                    password "$mavenCloudPassword"
                 }
             }
         }
 
     jcenter {
         url "https://nexus.ourtesco.com/repository/jcentral/"
-        if (project.hasProperty('mavenUser')) {
+        if (project.hasProperty('mavenCloudUsername')) {
             credentials {
-                username "$mavenUser"
-                password "$mavenPassword"
+                username "$mavenCloudUsername"
+                password "$mavenCloudPassword"
             }
         }
     }
@@ -160,10 +160,10 @@ subprojects {
                     maven {
                         url = "https://nexus.ourtesco.com/repository/Messaging/"
 
-                        if (project.hasProperty('mavenUser')) {
+                        if (project.hasProperty('mavenCloudUsername')) {
                             credentials {
-                                username "$mavenUser"
-                                password "$mavenPassword"
+                                username "$mavenCloudUsername"
+                                password "$mavenCloudPassword"
                             }
                         }
                     }
