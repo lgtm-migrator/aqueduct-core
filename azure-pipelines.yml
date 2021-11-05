@@ -66,8 +66,8 @@ stages:
               runscopeToken: '$(runscope-token)'
               scriptNames: 'get_pipe'
               version: '$(version)'
-              nexusCloudUsername: '$(nexus-token-username)'
-              nexusCloudPassword: '$(nexus-token-password)'
+              nexusUsername: '$(nexus-token-username)'
+              nexusPassword: '$(nexus-token-password)'
               githubUser: '$(github-public-username)'
               personalAccessToken: '$(github-public-personal-access-token)'
 
@@ -80,6 +80,6 @@ stages:
               runscopeToken: '$(runscope-token)'
               scriptNames: 'get_pipe'
               version: '$(version)'
-              nexusCloudUsername: '$(nexus-token-username)'
-              nexusCloudPassword: '$(nexus-token-password)'
+              nexusUsername: '$(nexus-token-username)'
+              nexusPassword: '$(nexus-token-password)'
               tagLatest: true
