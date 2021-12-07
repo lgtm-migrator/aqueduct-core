@@ -14,11 +14,9 @@ import com.tesco.aqueduct.registry.model.NodeRegistry;
 import com.tesco.aqueduct.registry.model.NodeRequestStorage;
 import com.tesco.aqueduct.registry.postgres.PostgreSQLNodeRegistry;
 import com.tesco.aqueduct.registry.postgres.PostgreSQLNodeRequestStorage;
-import io.jaegertracing.Configuration;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Value;
-import io.opentracing.Tracer;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -32,7 +30,8 @@ import java.time.Duration;
 public class Bindings {
 
     // This provides Reader as it implements it
-    @Singleton @Named("local")
+    @Singleton
+    @Named("local")
     PostgresqlStorage bindPostgreSQL(
         @Property(name = "persistence.read.limit") final int limit,
         @Property(name = "persistence.read.retry-after") final int retryAfter,
@@ -90,8 +89,4 @@ public class Bindings {
         return new CloudLocationService(locationServiceClientProvider);
     }
 
-    @Singleton
-    public Tracer tracer() {
-        return new Configuration("Aqueduct Core").getTracer();
-    }
 }
