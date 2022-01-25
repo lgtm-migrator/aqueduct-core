@@ -8,9 +8,8 @@ import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.filter.HttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import io.reactivex.Flowable;
+import jakarta.inject.Inject;
 import org.reactivestreams.Publisher;
-
-import javax.inject.Inject;
 
 @Filter("/pipe/*")
 public class PipeReadFilter implements HttpServerFilter {

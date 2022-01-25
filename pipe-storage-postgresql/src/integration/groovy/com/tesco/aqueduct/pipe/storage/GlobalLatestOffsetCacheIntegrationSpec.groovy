@@ -6,17 +6,15 @@ import groovy.sql.Sql
 import io.micronaut.context.ApplicationContext
 import io.micronaut.context.annotation.Property
 import io.micronaut.test.extensions.spock.annotation.MicronautTest
+import jakarta.inject.Inject
 import org.junit.ClassRule
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 import spock.lang.Specification
 
-import javax.inject.Inject
 import java.sql.Connection
 import java.sql.PreparedStatement
 import java.sql.ResultSet
-import java.sql.Timestamp
-import java.time.LocalDateTime
 
 import static java.sql.DriverManager.getConnection
 

@@ -53,7 +53,7 @@ class LocationServiceClientIntegrationSpec extends Specification {
         String locationBasePath = locationMockService.getHttpUrl() + "$LOCATION_BASE_PATH/"
 
         context = ApplicationContext
-                .build()
+                .builder()
                 .mainClass(EmbeddedServer)
                 .properties(
                     parseYamlConfig(

@@ -2,8 +2,7 @@ package com.tesco.aqueduct.pipe.http;
 
 import com.google.common.util.concurrent.RateLimiter;
 import io.micronaut.context.annotation.Property;
-
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class PipeRateLimiter {

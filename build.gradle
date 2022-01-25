@@ -114,7 +114,6 @@ subprojects {
                 implementation 'io.micronaut:micronaut-inject-java'
                 annotationProcessor 'io.micronaut:micronaut-inject-java'
 
-                annotationProcessor 'io.micronaut.configuration:micronaut-openapi'
                 implementation 'io.swagger.core.v3:swagger-annotations'
 
                 implementation 'io.micronaut.security:micronaut-security-annotations'
@@ -126,6 +125,8 @@ subprojects {
 
                 implementation 'io.micronaut:micronaut-inject'
                 implementation 'io.micronaut:micronaut-runtime'
+
+                implementation "io.micronaut.rxjava2:micronaut-rxjava2"
 
                 testImplementation 'io.micronaut:micronaut-inject-groovy'
                 testImplementation 'io.micronaut.test:micronaut-test-spock'
@@ -228,7 +229,7 @@ subprojects {
 
     dependencyManagement {
         imports {
-            mavenBom 'io.micronaut:micronaut-bom:2.5.13'
+            mavenBom 'io.micronaut:micronaut-bom:3.2.5'
         }
     }
 

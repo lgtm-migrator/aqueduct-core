@@ -1,26 +1,27 @@
 package com.tesco.aqueduct.pipe.identity.validator;
 
+import com.google.common.collect.ImmutableMap;
 import com.tesco.aqueduct.pipe.identity.issuer.IdentityServiceUnavailableException;
 import com.tesco.aqueduct.pipe.logger.PipeLogger;
-import edu.umd.cs.findbugs.annotations.Nullable;
 import io.micronaut.cache.annotation.Cacheable;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.annotation.Value;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.annotation.SingleResult;
 import io.micronaut.core.order.Ordered;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.security.authentication.Authentication;
-import io.micronaut.security.authentication.AuthenticationUserDetailsAdapter;
-import io.micronaut.security.authentication.UserDetails;
+import io.micronaut.security.authentication.ClientAuthentication;
+import io.micronaut.security.token.config.TokenConfigurationProperties;
 import io.micronaut.security.token.validator.TokenValidator;
 import io.reactivex.Flowable;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -34,6 +35,7 @@ public class IdentityTokenValidator implements TokenValidator {
     private final List<TokenUser> users;
     private final String clientIdAndSecret;
     private final IdentityTokenValidatorClient identityTokenValidatorClient;
+    private final TokenConfigurationProperties tokenConfigurationProperties;
 
     @Inject
     public IdentityTokenValidator(
@@ -45,11 +47,7 @@ public class IdentityTokenValidator implements TokenValidator {
         this.identityTokenValidatorClient = identityTokenValidatorClient;
         this.clientIdAndSecret = clientId + ":" + clientSecret;
         this.users = users;
-    }
-
-    @Override // Deprecated, hence remove at some point
-    public Publisher<Authentication> validateToken(String token) {
-        return validateToken(token, null);
+        this.tokenConfigurationProperties = new TokenConfigurationProperties();
     }
 
     @Override
@@ -67,7 +65,7 @@ public class IdentityTokenValidator implements TokenValidator {
             .doOnError(this::handleError)
             .filter(ValidateTokenResponse::isTokenValid)
             .map(ValidateTokenResponse::getClientUserID)
-            .map(this::toUserDetailsAdapter);
+            .map(this::toUserAuthentication);
     }
 
     private void handleError(Throwable error) {
@@ -86,17 +84,14 @@ public class IdentityTokenValidator implements TokenValidator {
         return MDC.get("trace_id") == null ? UUID.randomUUID().toString() : MDC.get("trace_id");
     }
 
-    private AuthenticationUserDetailsAdapter toUserDetailsAdapter(String clientId) {
+    private Authentication toUserAuthentication(String clientId) {
         List<String> roles = users.stream()
             .filter(u -> u.clientId.equals(clientId))
             .filter(u -> u.roles != null)
             .map(u -> u.roles)
             .findFirst()
             .orElse(Collections.emptyList());
-
-        UserDetails userDetails = new UserDetails(clientId, roles);
-
-        return new AuthenticationUserDetailsAdapter(userDetails, "roles", "user");
+        return new ClientAuthentication(clientId, ImmutableMap.of(tokenConfigurationProperties.getRolesName(), roles));
     }
 
     //lowest precedence chosen so it is used after others

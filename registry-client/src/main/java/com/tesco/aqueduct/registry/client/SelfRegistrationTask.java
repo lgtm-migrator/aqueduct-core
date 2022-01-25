@@ -1,6 +1,9 @@
 package com.tesco.aqueduct.registry.client;
 
-import com.tesco.aqueduct.registry.model.*;
+import com.tesco.aqueduct.registry.model.Bootstrapable;
+import com.tesco.aqueduct.registry.model.Node;
+import com.tesco.aqueduct.registry.model.RegistryResponse;
+import com.tesco.aqueduct.registry.model.Resetable;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
@@ -8,10 +11,10 @@ import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.annotation.Value;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.scheduling.annotation.Scheduled;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.time.Duration;
 
 @Context

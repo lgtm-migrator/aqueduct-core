@@ -59,7 +59,7 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
         and: "a authorized client"
         def config = new DefaultHttpClientConfiguration()
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "authentication.read-pipe.username": "admin",
                 "authentication.read-pipe.password": "my-password",
@@ -119,7 +119,7 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
         and: "a authorized client"
         def config = new DefaultHttpClientConfiguration()
         context = ApplicationContext
-                .build()
+                .builder()
                 .properties(
                     "authentication.read-pipe.username": "admin",
                     "authentication.read-pipe.password": "my-password",

@@ -4,8 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tesco.aqueduct.pipe.api.JsonHelper;
 import io.micronaut.context.event.BeanCreatedEvent;
 import io.micronaut.context.event.BeanCreatedEventListener;
-
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Singleton
 public class ObjectMapperBeanEventListener implements BeanCreatedEventListener<ObjectMapper> {

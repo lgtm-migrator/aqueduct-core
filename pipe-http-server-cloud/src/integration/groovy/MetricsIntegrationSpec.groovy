@@ -16,7 +16,7 @@ class MetricsIntegrationSpec extends Specification {
 
     void setupSpec() {
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(EmbeddedServer)
             .properties(
                 parseYamlConfig(

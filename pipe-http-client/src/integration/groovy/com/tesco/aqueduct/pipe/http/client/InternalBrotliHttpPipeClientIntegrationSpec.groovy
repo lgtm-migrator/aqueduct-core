@@ -28,7 +28,7 @@ class InternalBrotliHttpPipeClientIntegrationSpec extends Specification {
 
     def setup() {
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.http.client.attempts": 1,
                 "pipe.http.client.delay": "500ms",

@@ -1,8 +1,8 @@
 package com.tesco.aqueduct.pipe.http.client;
 
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
 
-import javax.annotation.Nullable;
 import java.util.List;
 
 public interface InternalHttpPipeClient {

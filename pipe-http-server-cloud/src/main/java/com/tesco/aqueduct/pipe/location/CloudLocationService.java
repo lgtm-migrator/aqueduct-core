@@ -3,10 +3,10 @@ package com.tesco.aqueduct.pipe.location;
 import com.tesco.aqueduct.pipe.api.LocationService;
 import com.tesco.aqueduct.pipe.logger.PipeLogger;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import jakarta.inject.Provider;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import javax.inject.Provider;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 import java.util.UUID;

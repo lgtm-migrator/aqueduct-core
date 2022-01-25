@@ -3,11 +3,10 @@ package com.tesco.aqueduct.pipe.metrics;
 import io.micronaut.aop.MethodInterceptor;
 import io.micronaut.aop.MethodInvocationContext;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
-
-import javax.inject.Singleton;
 
 @Singleton
 public class MetricsInterceptor implements MethodInterceptor<Object, Object> {

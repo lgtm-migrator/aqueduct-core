@@ -2,9 +2,9 @@ package com.tesco.aqueduct.pipe.storage;
 
 import com.tesco.aqueduct.pipe.logger.PipeLogger;
 import io.micronaut.cache.annotation.Cacheable;
+import jakarta.inject.Singleton;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Singleton;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;

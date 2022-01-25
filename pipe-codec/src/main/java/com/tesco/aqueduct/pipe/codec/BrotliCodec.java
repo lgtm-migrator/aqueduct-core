@@ -6,9 +6,9 @@ import com.nixxcode.jvmbrotli.enc.BrotliOutputStream;
 import com.nixxcode.jvmbrotli.enc.Encoder;
 import com.tesco.aqueduct.pipe.logger.PipeLogger;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Singleton;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Singleton;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;

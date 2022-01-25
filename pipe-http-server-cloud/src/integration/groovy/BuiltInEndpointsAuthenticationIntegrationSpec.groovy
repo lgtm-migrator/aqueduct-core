@@ -39,7 +39,7 @@ class BuiltInEndpointsAuthenticationIntegrationSpec extends Specification {
 
     def setup() {
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(EmbeddedServer)
             .properties(
                 parseYamlConfig(

@@ -55,7 +55,7 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
         centralStorageMock.read(_, _, _) >> new MessageResults([], 0, OptionalLong.of(1), PipeState.UP_TO_DATE)
 
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(EmbeddedServer)
             .properties(
                 parseYamlConfig(

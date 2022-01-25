@@ -1,15 +1,14 @@
 package com.tesco.aqueduct.registry.client;
 
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.discovery.ServiceInstance;
 import io.micronaut.http.client.LoadBalancer;
 import io.reactivex.Flowable;
+import jakarta.inject.Singleton;
 import org.reactivestreams.Publisher;
 
-import javax.annotation.Nullable;
-import javax.inject.Singleton;
 import java.net.URL;
-import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.stream.Collectors;

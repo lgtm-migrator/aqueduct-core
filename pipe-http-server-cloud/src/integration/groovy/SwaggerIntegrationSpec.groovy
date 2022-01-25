@@ -18,7 +18,7 @@ class SwaggerIntegrationSpec extends Specification {
     def setup() {
 
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.server.url": "http://cloud.pipe",
                 "persistence.read.limit": 1000,

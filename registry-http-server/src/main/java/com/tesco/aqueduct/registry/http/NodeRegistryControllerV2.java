@@ -7,9 +7,9 @@ import com.tesco.aqueduct.pipe.codec.GzipCodec;
 import com.tesco.aqueduct.pipe.metrics.Measure;
 import com.tesco.aqueduct.registry.model.Status;
 import com.tesco.aqueduct.registry.model.*;
-import com.tesco.aqueduct.registry.postgres.PostgreSQLNodeRegistry;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -18,10 +18,9 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.http.hateoas.JsonError;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import jakarta.inject.Inject;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
 import java.sql.SQLException;
 import java.util.List;
 

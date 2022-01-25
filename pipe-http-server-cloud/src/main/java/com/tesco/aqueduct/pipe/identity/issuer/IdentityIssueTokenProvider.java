@@ -5,10 +5,10 @@ import com.tesco.aqueduct.pipe.api.TokenProvider;
 import com.tesco.aqueduct.pipe.logger.PipeLogger;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.reactivex.Single;
+import jakarta.inject.Provider;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import javax.inject.Provider;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 

@@ -42,7 +42,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
 
     void setupContext(Map properties=[:]) {
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 [
                     "pipe.http.client.url": "http://does.not.exist",

@@ -34,7 +34,7 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
         identityMockService.start()
 
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(EmbeddedServer)
             .properties(
                 parseYamlConfig(

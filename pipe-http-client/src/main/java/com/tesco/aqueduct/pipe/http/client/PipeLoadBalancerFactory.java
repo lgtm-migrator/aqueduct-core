@@ -5,8 +5,7 @@ import io.micronaut.context.annotation.Replaces;
 import io.micronaut.discovery.DiscoveryClient;
 import io.micronaut.http.client.LoadBalancer;
 import io.micronaut.http.client.loadbalance.DiscoveryClientLoadBalancerFactory;
-
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 
 @Singleton
 @Replaces(DiscoveryClientLoadBalancerFactory.class)

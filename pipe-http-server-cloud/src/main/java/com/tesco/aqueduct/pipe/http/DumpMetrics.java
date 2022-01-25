@@ -3,12 +3,12 @@ package com.tesco.aqueduct.pipe.http;
 import io.micronaut.configuration.metrics.management.endpoint.MetricsEndpoint;
 import io.micronaut.core.bind.exceptions.UnsatisfiedArgumentException;
 import io.micronaut.scheduling.annotation.Scheduled;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.Collections;
 import java.util.SortedSet;
 

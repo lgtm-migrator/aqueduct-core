@@ -6,11 +6,11 @@ import io.micronaut.runtime.server.EmbeddedServer
 import io.micronaut.test.annotation.MockBean
 import io.micronaut.test.extensions.spock.annotation.MicronautTest
 import io.restassured.RestAssured
+import jakarta.inject.Inject
+import jakarta.inject.Named
 import spock.lang.Specification
 import spock.util.concurrent.PollingConditions
 
-import javax.inject.Inject
-import javax.inject.Named
 import java.time.ZonedDateTime
 
 import static java.util.OptionalLong.of

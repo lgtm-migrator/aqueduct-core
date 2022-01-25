@@ -1,8 +1,9 @@
 import io.micronaut.context.ApplicationContext
 import io.micronaut.inject.BeanDefinition
 import io.micronaut.inject.qualifiers.Qualifiers
+import jakarta.inject.Named
 import spock.lang.Specification
-import javax.inject.Named
+
 import javax.sql.DataSource
 
 class CloudAqueductConfigIntegrationSpec extends Specification {
@@ -23,7 +24,7 @@ class CloudAqueductConfigIntegrationSpec extends Specification {
 
         and: "an application context with right environment"
         ApplicationContext applicationContext = ApplicationContext
-            .build()
+            .builder()
             .environments("integration")
             .build()
             .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("pipe"))

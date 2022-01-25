@@ -34,7 +34,21 @@ class PipeServiceInstanceSpec extends Specification {
         def serviceInstance = new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL("http://not.a.url"))
 
         when: "we check the state"
-        serviceInstance.checkState().blockingAwait()
+        serviceInstance.updateState().blockingAwait()
+
+        then:
+        noExceptionThrown()
+
+        and:
+        !serviceInstance.isUp()
+    }
+
+    def "error handled when uri is not valid"() {
+        given: "pipe service instance with invalid uri"
+        def serviceInstance = new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL("http://"))
+
+        when: "we check the state"
+        serviceInstance.updateState().blockingAwait()
 
         then:
         noExceptionThrown()

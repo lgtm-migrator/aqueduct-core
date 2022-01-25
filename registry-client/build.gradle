@@ -5,6 +5,8 @@ dependencies {
     addMicronautDependencies()
 
     implementation 'io.micronaut:micronaut-http-client'
+    implementation 'io.netty:netty-tcnative-boringssl-static:2.0.47.Final'
+
     testImplementation 'com.github.tomakehurst:wiremock-jre8:2.27.1'
     addSlf4jDependencies()
 }

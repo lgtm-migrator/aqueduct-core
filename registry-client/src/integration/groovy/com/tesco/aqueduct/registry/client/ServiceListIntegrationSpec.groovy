@@ -33,7 +33,7 @@ class ServiceListIntegrationSpec extends Specification {
         serviceList.update(paths.withIndex().collect { element, index -> URL(servers[index].httpUrl + element) })
 
         when: "checking the status of the urls in the load balancer"
-        serviceList.checkState()
+        serviceList.updateState()
 
         then: "the mock servers are called, showing that the check status method respects the base path of the endpoints"
         servers.each { it.verify() }
@@ -50,7 +50,7 @@ class ServiceListIntegrationSpec extends Specification {
         serviceList.update(servers.collect{ URL(it.httpUrl) })
 
         when: "check state is called"
-        serviceList.checkState()
+        serviceList.updateState()
 
         then:"status endpoints are called on each server"
         servers.each { it.verify() }

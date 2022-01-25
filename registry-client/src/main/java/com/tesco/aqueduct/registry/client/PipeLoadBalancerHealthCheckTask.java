@@ -4,9 +4,8 @@ import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.scheduling.annotation.Scheduled;
+import jakarta.inject.Inject;
 import org.slf4j.LoggerFactory;
-
-import javax.inject.Inject;
 
 @Context
 @Requires(property = "pipe.http.client.healthcheck.interval")
@@ -23,7 +22,7 @@ public class PipeLoadBalancerHealthCheckTask {
     @Scheduled(fixedDelay = "${pipe.http.client.healthcheck.interval}")
     public void checkState() {
         try {
-            services.checkState();
+            services.updateState();
         } catch (Throwable t) {
             LOG.error("healthcheck","unexpected error", t);
         }

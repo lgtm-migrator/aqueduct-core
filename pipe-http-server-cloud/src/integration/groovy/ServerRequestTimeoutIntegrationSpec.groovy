@@ -40,7 +40,7 @@ class ServerRequestTimeoutIntegrationSpec extends Specification {
         }
 
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.server.url":                              "http://cloud.pipe",
                 "persistence.read.limit":                       1000,

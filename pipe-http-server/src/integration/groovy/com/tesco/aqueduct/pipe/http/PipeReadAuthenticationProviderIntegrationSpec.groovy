@@ -6,14 +6,12 @@ import io.micronaut.context.env.yaml.YamlPropertySourceLoader
 import io.micronaut.http.HttpStatus
 import io.micronaut.inject.qualifiers.Qualifiers
 import io.micronaut.runtime.server.EmbeddedServer
-import io.micronaut.test.annotation.MicronautTest
 import io.restassured.RestAssured
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 import spock.lang.Specification
 
 @Newify(Message)
-@MicronautTest
 class PipeReadAuthenticationProviderIntegrationSpec extends Specification {
 
     static final int RETRY_AFTER_SECONDS = 600
@@ -31,7 +29,7 @@ class PipeReadAuthenticationProviderIntegrationSpec extends Specification {
         locationResolver.getClusterUuids(_) >> ["cluster1"]
 
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 parseYamlConfig(
                     """

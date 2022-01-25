@@ -10,7 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.time.*;
+import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -145,9 +145,9 @@ public class ServiceList {
         }
     }
 
-    public void checkState() {
+    public void updateState() {
         fromIterable(services)
-            .flatMapCompletable(PipeServiceInstance::checkState)
+            .flatMapCompletable(PipeServiceInstance::updateState)
             .blockingAwait();
     }
 

@@ -45,7 +45,7 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
 
         and: "client configured with auth"
         def context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.http.client.url": server.getHttpUrl(),
                 "registry.http.client.delay": "500ms",
@@ -95,7 +95,7 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
 
         and: 'an application context is created'
         def context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.http.client.url": server.getHttpUrl() + basePath,
                 "registry.http.client.url": server.getHttpUrl() + basePath + "/v2",

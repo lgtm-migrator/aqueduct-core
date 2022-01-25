@@ -19,7 +19,7 @@ class PipeStatusControllerIntegrationSpec extends Specification {
 
     void setupSpec() {
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(PipeStatusController)
             .properties(
                 parseYamlConfig(

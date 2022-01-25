@@ -16,7 +16,6 @@ import spock.lang.Shared
 import spock.lang.Specification
 
 import javax.sql.DataSource
-import java.sql.Timestamp
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
@@ -43,7 +42,7 @@ class LocationRoutingIntegrationSpec extends Specification {
         identityMockService = new IdentityMock(CLIENT_ID, CLIENT_SECRET, ACCESS_TOKEN)
 
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.server.url":                              "http://cloud.pipe",
                 "persistence.read.limit":                       1000,

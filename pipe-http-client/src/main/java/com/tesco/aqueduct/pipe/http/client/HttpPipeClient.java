@@ -3,11 +3,11 @@ package com.tesco.aqueduct.pipe.http.client;
 import com.tesco.aqueduct.pipe.api.*;
 import com.tesco.aqueduct.pipe.codec.Codec;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.core.annotation.Nullable;
 import io.micronaut.http.HttpResponse;
+import jakarta.inject.Inject;
+import jakarta.inject.Named;
 
-import javax.annotation.Nullable;
-import javax.inject.Inject;
-import javax.inject.Named;
 import java.util.List;
 import java.util.Optional;
 import java.util.OptionalLong;

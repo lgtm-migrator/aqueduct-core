@@ -43,7 +43,7 @@ class RegistryClientIntegrationSpec extends Specification {
         given: "A dummy server's application context"
 
         def context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
                 "registry.http.interval": "1m",

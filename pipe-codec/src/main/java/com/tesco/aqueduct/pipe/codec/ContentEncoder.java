@@ -2,9 +2,9 @@ package com.tesco.aqueduct.pipe.codec;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
+import jakarta.inject.Inject;
 import lombok.Getter;
 
-import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.Map;
 

@@ -28,13 +28,14 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
         )
 
         when:
-        pipeServiceInstance.checkState().blockingGet()
+        pipeServiceInstance.updateState().blockingGet()
 
         then:
         pipeServiceInstance.isUp()
     }
 
-    def "sets flag isUp to false when the service is down"() {
+    @Unroll
+    def "sets flag isUp to false when the service is down with status as #status"() {
         given:
         def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL(wireMockRule.baseUrl()))
 
@@ -42,19 +43,24 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
         stubFor(
             get(urlEqualTo("/pipe/_status"))
                 .willReturn(aResponse()
-                    .withStatus(500)
+                    .withStatus(status)
                     .withBody("a response")
                 )
         )
 
         when:
-        pipeServiceInstance.checkState().blockingGet()
+        pipeServiceInstance.updateState().blockingGet()
 
         then:
         !pipeServiceInstance.isUp()
 
         and:
         verify(exactly(3), getRequestedFor(urlEqualTo("/pipe/_status")))
+
+        where:
+        status | _
+        500    | _
+        400    | _
     }
 
     @Unroll
@@ -78,7 +84,7 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
                 .willReturn(aResponse().withStatus(responseThirdCall).withBody("a response")))
 
         when:
-        pipeServiceInstance.checkState().blockingGet()
+        pipeServiceInstance.updateState().blockingGet()
 
         then:
         pipeServiceInstance.isUp()
@@ -92,6 +98,4 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
         500               | 200                | 200               | 2
         500               | 500                | 200               | 3
     }
-
-
 }

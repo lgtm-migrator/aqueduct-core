@@ -1,5 +1,6 @@
 import com.tesco.aqueduct.pipe.identity.issuer.IdentityServiceUnavailableException
 import com.tesco.aqueduct.pipe.identity.validator.*
+import io.micronaut.http.HttpRequest
 import io.micronaut.http.HttpResponse
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.security.authentication.Authentication
@@ -30,7 +31,7 @@ class IdentityTokenValidatorSpec extends Specification {
         def tokenValidator = new IdentityTokenValidator(identityTokenValidatorClient, clientId, clientSecret, [tokenUser])
 
         when:
-        def result = tokenValidator.validateToken("token") as Flowable
+        def result = tokenValidator.validateToken("token", Mock(HttpRequest)) as Flowable
 
         then:
         predicate(result)
@@ -49,7 +50,7 @@ class IdentityTokenValidatorSpec extends Specification {
         def tokenValidator = new IdentityTokenValidator(identityTokenValidatorClient, "clientId", "clientSecret", ["tokenUser"] as List<TokenUser>)
 
         when:
-        (tokenValidator.validateToken("token") as Flowable).blockingSubscribe()
+        (tokenValidator.validateToken("token", Mock(HttpRequest)) as Flowable).blockingSubscribe()
 
         then:
         thrown(HttpClientResponseException)
@@ -63,7 +64,7 @@ class IdentityTokenValidatorSpec extends Specification {
         def tokenValidator = new IdentityTokenValidator(identityTokenValidatorClient, "clientId", "clientSecret", ["tokenUser"] as List<TokenUser>)
 
         when:
-        (tokenValidator.validateToken("token") as Flowable).blockingSubscribe()
+        (tokenValidator.validateToken("token", Mock(HttpRequest)) as Flowable).blockingSubscribe()
 
         then:
         CompositeException exception = thrown()

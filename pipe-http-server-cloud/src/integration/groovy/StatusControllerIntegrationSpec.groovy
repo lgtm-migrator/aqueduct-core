@@ -21,7 +21,7 @@ class StatusControllerIntegrationSpec extends Specification {
 
     void setupSpec() {
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(StatusController)
             .build()
             .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("pipe"))

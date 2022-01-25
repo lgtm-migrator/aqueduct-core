@@ -45,7 +45,7 @@ class CodecIntegrationSpec extends Specification {
         locationMockService = new LocationMock(ACCESS_TOKEN)
 
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 "pipe.server.url":                              "http://cloud.pipe",
                 "persistence.read.limit":                       1000,

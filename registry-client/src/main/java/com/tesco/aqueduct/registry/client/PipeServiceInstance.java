@@ -2,15 +2,15 @@ package com.tesco.aqueduct.registry.client;
 
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.discovery.ServiceInstance;
+import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.client.HttpClientConfiguration;
-import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.netty.DefaultHttpClient;
 import io.micronaut.http.uri.UriBuilder;
 import io.reactivex.Completable;
-import io.reactivex.Flowable;
+import io.reactivex.Single;
+import jakarta.inject.Inject;
 import org.slf4j.LoggerFactory;
 
-import javax.inject.Inject;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -67,32 +67,42 @@ public class PipeServiceInstance implements ServiceInstance {
         }
     }
 
-    Completable checkState() {
-        final RxHttpClient client = new DefaultHttpClient(url, configuration);
-        return checkState(client);
-    }
-
-    private Completable checkState(final RxHttpClient client) {
-        final String statusUrl = generateStatusUrlFromBaseURI(getURI());
-        return client.retrieve(statusUrl)
-            // if got response, then it's a true
-            .map(response -> true )
-            // log result
-            .doOnNext(b -> LOG.debug("healthcheck.success", url.toString()))
-            .doOnError(t -> LOG.error("healthcheck.failed", url.toString() + " failed with error " + t.getMessage(), ""))
-            .retry(2)
-            // change exception to "false"
-            .onErrorResumeNext(Flowable.just(false))
-            // set the status of the instance
-            .doOnNext(this::isUp)
-            // return as completable, close client and ignore any errors
-            .ignoreElements() // returns completable
-            .doOnComplete(client::close)
+    Completable updateState() {
+        return Completable
+            .using(
+                () -> new DefaultHttpClient(url.toURI(), configuration),
+                this::updateState,
+                DefaultHttpClient::close
+            )
+            .doOnError(throwable -> {
+                this.isUp(false);
+                logError(throwable);
+            })
             .onErrorComplete();
     }
 
-    private String generateStatusUrlFromBaseURI(final URI baseURI) {
-        return UriBuilder.of(baseURI).path("/pipe/_status").build().toString();
+    private void logError(Throwable throwable) {
+        LOG.error("healthcheck.failed", url + " failed with error " + throwable.getMessage(), "");
+    }
+
+    private Completable updateState(final HttpClient client) {
+        return Single.fromPublisher(client.retrieve(withStatusUrlFromBaseUri()))
+            // if got response, then it's a true
+            .map(response -> true)
+            // log result
+            .doOnSuccess(b -> LOG.debug("healthcheck.success", url.toString()))
+            .doOnError(this::logError)
+            .retry(2)
+            // change exception to "false"
+            .onErrorResumeNext(Single.just(false))
+            // set the status of the instance
+            .doOnSuccess(this::isUp)
+            // return as completable, close client and ignore any errors
+            .ignoreElement(); // returns completable
+    }
+
+    private String withStatusUrlFromBaseUri() {
+        return UriBuilder.of(getURI()).path("/pipe/_status").build().toString();
     }
 
     private URI getUriWithBasePath(final URI relativeURI) throws URISyntaxException {

@@ -34,7 +34,7 @@ class LocationServiceIntegrationSpec extends Specification {
         identityMockService = new IdentityMock(CLIENT_ID, CLIENT_SECRET, ACCESS_TOKEN)
 
         context = ApplicationContext
-            .build()
+            .builder()
             .mainClass(EmbeddedServer)
             .properties(
                 parseYamlConfig(

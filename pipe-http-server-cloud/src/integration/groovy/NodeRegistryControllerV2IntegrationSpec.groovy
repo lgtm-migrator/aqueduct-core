@@ -86,7 +86,7 @@ class NodeRegistryControllerV2IntegrationSpec extends Specification {
         }
 
         context = ApplicationContext
-            .build()
+            .builder()
             .properties(
                 // enabling security to prove that registry is accessible anyway
                 parseYamlConfig(
@@ -138,8 +138,8 @@ class NodeRegistryControllerV2IntegrationSpec extends Specification {
 
         server = context.getBean(EmbeddedServer)
 
-        RestAssured.port = server.port
         server.start()
+        RestAssured.port = server.port
     }
 
     void setup() {

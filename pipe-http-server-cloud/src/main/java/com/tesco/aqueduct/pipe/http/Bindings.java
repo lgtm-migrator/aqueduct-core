@@ -17,10 +17,10 @@ import com.tesco.aqueduct.registry.postgres.PostgreSQLNodeRequestStorage;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Value;
+import jakarta.inject.Named;
+import jakarta.inject.Provider;
+import jakarta.inject.Singleton;
 
-import javax.inject.Named;
-import javax.inject.Provider;
-import javax.inject.Singleton;
 import javax.sql.DataSource;
 import java.net.URL;
 import java.time.Duration;
