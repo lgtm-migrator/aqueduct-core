@@ -27,7 +27,7 @@ class BrotliCodecSpec extends Specification {
         def brotliCodec = new BrotliCodec(4, false)
 
         and:
-        def inputData = "Som non brotli codec data"
+        def inputData = "Some non brotli codec data"
 
         when:
         brotliCodec.decode(inputData.bytes)

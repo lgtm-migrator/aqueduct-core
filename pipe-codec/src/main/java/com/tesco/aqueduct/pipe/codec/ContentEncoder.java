@@ -33,7 +33,7 @@ public class ContentEncoder {
         Map<CharSequence, CharSequence> headers = new HashMap<>();
         byte[] responseBody = responseBytes;
         if (needsCompression(request, responseBytes)){
-            if (request.getHeaders().get(ACCEPT_ENCODING).contains("br")) {
+            if (request.getHeaders().get(ACCEPT_ENCODING).contains("br") && brotliCodec.isAvailable()) {
                 responseBody = brotliCodec.encode(responseBytes);
                 headers.put(X_CONTENT_ENCODING, brotliCodec.getHeaderType());
             } else if (request.getHeaders().get(ACCEPT_ENCODING).contains("gzip")) {
