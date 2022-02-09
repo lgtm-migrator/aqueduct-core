@@ -20,7 +20,7 @@ public class PipeServiceInstance implements ServiceInstance {
 
     private final HttpClient httpClient;
     private final URL url;
-    private boolean up = true;
+    private boolean up = false;
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(PipeServiceInstance.class));
 
     @Inject
@@ -68,12 +68,20 @@ public class PipeServiceInstance implements ServiceInstance {
     }
 
     Completable updateState() {
-        return Completable.fromCallable(this::updateState)
-            .doOnError(throwable -> {
-                this.isUp(false);
-                logError(throwable);
-            })
-            .onErrorComplete();
+        return Single.defer(() -> Single.just(withStatusUrlFromBaseUri())).
+            flatMap(uri -> Single.fromPublisher(httpClient.retrieve(uri)))
+            // if got response, then it's a true
+            .map(response -> true)
+            // log result
+            .doOnSuccess(b -> LOG.debug("healthcheck.success", url.toString()))
+            .doOnError(this::logError)
+            .retry(2)
+            // change exception to "false"
+            .onErrorResumeNext(Single.just(false))
+            // set the status of the instance
+            .doOnSuccess(this::isUp)
+            // return as completable, close client and ignore any errors
+            .ignoreElement(); // returns completable
     }
 
     private void logError(Throwable throwable) {
