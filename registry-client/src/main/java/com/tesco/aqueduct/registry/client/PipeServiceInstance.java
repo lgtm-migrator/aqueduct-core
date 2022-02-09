@@ -18,7 +18,7 @@ public class PipeServiceInstance implements ServiceInstance {
 
     private final HttpClient httpClient;
     private final URL url;
-    private boolean up = false;
+    private boolean up = true;
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(PipeServiceInstance.class));
 
     @Inject
