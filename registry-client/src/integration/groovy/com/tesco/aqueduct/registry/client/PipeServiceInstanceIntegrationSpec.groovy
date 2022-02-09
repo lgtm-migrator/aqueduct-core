@@ -2,7 +2,7 @@ package com.tesco.aqueduct.registry.client
 
 import com.github.tomakehurst.wiremock.junit.WireMockRule
 import com.github.tomakehurst.wiremock.stubbing.Scenario
-import io.micronaut.http.client.DefaultHttpClientConfiguration
+import io.micronaut.http.client.netty.DefaultHttpClient
 import org.junit.Rule
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -16,7 +16,7 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
 
     def "sets flag isUp to true when a valid http response is returned"() {
         given:
-        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL(wireMockRule.baseUrl()))
+        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClient(), new URL(wireMockRule.baseUrl()))
 
         and:
         stubFor(
@@ -37,7 +37,7 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
     @Unroll
     def "sets flag isUp to false when the service is down with status as #status"() {
         given:
-        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL(wireMockRule.baseUrl()))
+        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClient(), new URL(wireMockRule.baseUrl()))
 
         and:
         stubFor(
@@ -66,7 +66,7 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
     @Unroll
     def "checkState retries twice if request fails on first attempt"() {
         given:
-        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL(wireMockRule.baseUrl()))
+        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClient(), new URL(wireMockRule.baseUrl()))
 
         and:
         stubFor(get(urlEqualTo("/pipe/_status")).inScenario("healthcheck")

@@ -7,8 +7,8 @@ import com.tesco.aqueduct.registry.client.PipeServiceInstance
 import com.tesco.aqueduct.registry.client.SelfRegistrationTask
 import com.tesco.aqueduct.registry.client.ServiceList
 import io.micronaut.context.ApplicationContext
-import io.micronaut.http.client.DefaultHttpClientConfiguration
 import io.micronaut.http.client.exceptions.HttpClientResponseException
+import io.micronaut.http.client.netty.DefaultHttpClient
 import org.junit.Rule
 import spock.lang.AutoCleanup
 import spock.lang.Shared
@@ -42,8 +42,8 @@ class InternalGzipHttpPipeClientIntegrationSpec extends Specification {
             .registerSingleton(SelfRegistrationTask, Mock(SelfRegistrationTask))
             .registerSingleton(Mock(TokenProvider))
             .registerSingleton(new ServiceList(
-                new DefaultHttpClientConfiguration(),
-                new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL(wireMockRule.baseUrl())),
+                new DefaultHttpClient(),
+                new PipeServiceInstance(new DefaultHttpClient(), new URL(wireMockRule.baseUrl())),
                 File.createTempFile("provider", "properties")
             ))
             .start()

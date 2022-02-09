@@ -7,6 +7,7 @@ import com.tesco.aqueduct.registry.client.PipeServiceInstance
 import com.tesco.aqueduct.registry.client.ServiceList
 import io.micronaut.context.ApplicationContext
 import io.micronaut.http.client.DefaultHttpClientConfiguration
+import io.micronaut.http.client.netty.DefaultHttpClient
 import io.reactivex.Single
 import spock.lang.AutoCleanup
 import spock.lang.Shared
@@ -72,10 +73,10 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
             .build()
             .registerSingleton(tokenProvider)
             .registerSingleton(new ServiceList(
-                new DefaultHttpClientConfiguration(),
-                new PipeServiceInstance(config, new URL(server.getHttpUrl())),
+                new DefaultHttpClient(),
+                new PipeServiceInstance(new DefaultHttpClient(), new URL(server.getHttpUrl())),
                 File.createTempFile("provider", "properties")
-        ))
+            ))
             .start()
 
         client = context.getBean(InternalBrotliHttpPipeClient)
@@ -132,9 +133,9 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
                 .build()
                 .registerSingleton(TokenProvider, Mock(TokenProvider))
                 .registerSingleton(new ServiceList(
-                        new DefaultHttpClientConfiguration(),
-                        new PipeServiceInstance(config, new URL(server.getHttpUrl())),
-                        File.createTempFile("provider", "properties")
+                    new DefaultHttpClient(),
+                    new PipeServiceInstance(new DefaultHttpClient(), new URL(server.getHttpUrl())),
+                    File.createTempFile("provider", "properties")
                 ))
                 .start()
 

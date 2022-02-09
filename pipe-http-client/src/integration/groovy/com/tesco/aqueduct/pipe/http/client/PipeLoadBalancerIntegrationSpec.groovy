@@ -10,8 +10,8 @@ import com.tesco.aqueduct.registry.client.PipeServiceInstance
 import com.tesco.aqueduct.registry.client.SelfRegistrationTask
 import com.tesco.aqueduct.registry.client.ServiceList
 import io.micronaut.context.ApplicationContext
-import io.micronaut.http.client.DefaultHttpClientConfiguration
 import io.micronaut.http.client.exceptions.HttpClientResponseException
+import io.micronaut.http.client.netty.DefaultHttpClient
 import spock.lang.AutoCleanup
 import spock.lang.Specification
 import spock.util.concurrent.PollingConditions
@@ -61,8 +61,8 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
             .registerSingleton(Mock(TokenProvider))
             .registerSingleton(BrotliCodec, brotliCodec)
             .registerSingleton(new ServiceList(
-                new DefaultHttpClientConfiguration(),
-                new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL("http://does.not.exist")),
+                new DefaultHttpClient(),
+                new PipeServiceInstance(new DefaultHttpClient(), new URL("http://does.not.exist")),
                 File.createTempFile("provider", "properties")
             ))
             .start()

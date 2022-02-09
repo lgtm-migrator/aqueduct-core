@@ -18,14 +18,14 @@ import java.nio.file.Paths;
 
 public class PipeServiceInstance implements ServiceInstance {
 
-    private final HttpClientConfiguration configuration;
+    private final HttpClient httpClient;
     private final URL url;
     private boolean up = true;
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(PipeServiceInstance.class));
 
     @Inject
-    public PipeServiceInstance(final HttpClientConfiguration configuration, final URL url) {
-        this.configuration = configuration;
+    public PipeServiceInstance(final HttpClient httpClient, final URL url) {
+        this.httpClient = httpClient;
         this.url = url;
     }
 
@@ -68,12 +68,7 @@ public class PipeServiceInstance implements ServiceInstance {
     }
 
     Completable updateState() {
-        return Completable
-            .using(
-                () -> new DefaultHttpClient(url.toURI(), configuration),
-                this::updateState,
-                DefaultHttpClient::close
-            )
+        return Completable.fromCallable(this::updateState)
             .doOnError(throwable -> {
                 this.isUp(false);
                 logError(throwable);
