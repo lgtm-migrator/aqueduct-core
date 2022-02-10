@@ -120,7 +120,7 @@ subprojects {
                 implementation 'io.micronaut.security:micronaut-security-jwt'
                 implementation 'io.micronaut:micronaut-management'
                 implementation 'io.micronaut.micrometer:micronaut-micrometer-core'
-                implementation 'io.micronaut:micronaut-tracing:3.2.7'
+                implementation 'io.micronaut.tracing:micronaut-tracing-core:4.0.2'
                 implementation 'javax.cache:cache-api:1.1.1'
 
                 implementation 'io.micronaut:micronaut-inject'
