@@ -26,9 +26,9 @@ public class ServiceList {
     private ZonedDateTime lastUpdatedTime;
 
     public ServiceList(
-            HttpClient httpClient,
-            final PipeServiceInstance pipeServiceInstance,
-            File file
+        HttpClient httpClient,
+        final PipeServiceInstance pipeServiceInstance,
+        File file
     ) throws IOException {
         this.httpClient = httpClient;
         this.cloudInstance = pipeServiceInstance;
