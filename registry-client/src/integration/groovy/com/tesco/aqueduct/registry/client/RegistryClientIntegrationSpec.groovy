@@ -7,7 +7,7 @@ import com.tesco.aqueduct.registry.model.Bootstrapable
 import com.tesco.aqueduct.registry.model.Node
 import com.tesco.aqueduct.registry.model.Resetable
 import io.micronaut.context.ApplicationContext
-import io.micronaut.http.client.DefaultHttpClientConfiguration
+import io.micronaut.http.client.netty.DefaultHttpClient
 import io.micronaut.inject.qualifiers.Qualifiers
 import io.reactivex.Single
 import spock.lang.AutoCleanup
@@ -62,8 +62,8 @@ class RegistryClientIntegrationSpec extends Specification {
             .registerSingleton(Bootstrapable.class, Mock(Bootstrapable), Qualifiers.byName("controller"))
             .registerSingleton(Resetable.class, Mock(Resetable), Qualifiers.byName("corruptionManager"))
             .registerSingleton(new ServiceList(
-                new DefaultHttpClientConfiguration(),
-                new PipeServiceInstance(new DefaultHttpClientConfiguration(), new URL(server.getHttpUrl())),
+                new DefaultHttpClient(),
+                new PipeServiceInstance(new DefaultHttpClient(), new URL(server.getHttpUrl())),
                 File.createTempFile("provider", "properties")
             ))
             .start()

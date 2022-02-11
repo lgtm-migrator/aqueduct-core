@@ -46,6 +46,12 @@ plugins {
 
 apply plugin: 'org.owasp.dependencycheck'
 apply plugin: 'pl.allegro.tech.build.axion-release'
+apply plugin:'java'
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
 
 dependencyCheck {
 

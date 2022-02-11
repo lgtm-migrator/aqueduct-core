@@ -3,8 +3,6 @@ package com.tesco.aqueduct.registry.client;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.discovery.ServiceInstance;
 import io.micronaut.http.client.HttpClient;
-import io.micronaut.http.client.HttpClientConfiguration;
-import io.micronaut.http.client.netty.DefaultHttpClient;
 import io.micronaut.http.uri.UriBuilder;
 import io.reactivex.Completable;
 import io.reactivex.Single;
@@ -18,14 +16,14 @@ import java.nio.file.Paths;
 
 public class PipeServiceInstance implements ServiceInstance {
 
-    private final HttpClientConfiguration configuration;
+    private final HttpClient httpClient;
     private final URL url;
     private boolean up = true;
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(PipeServiceInstance.class));
 
     @Inject
-    public PipeServiceInstance(final HttpClientConfiguration configuration, final URL url) {
-        this.configuration = configuration;
+    public PipeServiceInstance(final HttpClient httpClient, final URL url) {
+        this.httpClient = httpClient;
         this.url = url;
     }
 
@@ -68,25 +66,8 @@ public class PipeServiceInstance implements ServiceInstance {
     }
 
     Completable updateState() {
-        return Completable
-            .using(
-                () -> new DefaultHttpClient(url.toURI(), configuration),
-                this::updateState,
-                DefaultHttpClient::close
-            )
-            .doOnError(throwable -> {
-                this.isUp(false);
-                logError(throwable);
-            })
-            .onErrorComplete();
-    }
-
-    private void logError(Throwable throwable) {
-        LOG.error("healthcheck.failed", url + " failed with error " + throwable.getMessage(), "");
-    }
-
-    private Completable updateState(final HttpClient client) {
-        return Single.fromPublisher(client.retrieve(withStatusUrlFromBaseUri()))
+        return Single.defer(() -> Single.just(withStatusUrlFromBaseUri())).
+            flatMap(uri -> Single.fromPublisher(httpClient.retrieve(uri)))
             // if got response, then it's a true
             .map(response -> true)
             // log result
@@ -99,6 +80,10 @@ public class PipeServiceInstance implements ServiceInstance {
             .doOnSuccess(this::isUp)
             // return as completable, close client and ignore any errors
             .ignoreElement(); // returns completable
+    }
+
+    private void logError(Throwable throwable) {
+        LOG.error("healthcheck.failed", url + " failed with error " + throwable.getMessage(), "");
     }
 
     private String withStatusUrlFromBaseUri() {

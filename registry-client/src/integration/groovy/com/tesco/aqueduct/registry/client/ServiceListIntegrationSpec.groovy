@@ -2,6 +2,7 @@ package com.tesco.aqueduct.registry.client
 
 import com.stehno.ersatz.ErsatzServer
 import io.micronaut.http.client.DefaultHttpClientConfiguration
+import io.micronaut.http.client.netty.DefaultHttpClient
 import io.micronaut.http.uri.UriBuilder
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
@@ -19,7 +20,7 @@ class ServiceListIntegrationSpec extends Specification {
     def setup() {
         def config = new DefaultHttpClientConfiguration()
         File existingPropertiesFile = folder.newFile()
-        serviceList = new ServiceList(config, new PipeServiceInstance(config, URL_1), existingPropertiesFile)
+        serviceList = new ServiceList(new DefaultHttpClient(), new PipeServiceInstance(new DefaultHttpClient(), URL_1), existingPropertiesFile)
     }
 
     def "check state respects the base path of all the servers in the list when performing the status check"() {

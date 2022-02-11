@@ -1,7 +1,7 @@
 package com.tesco.aqueduct.registry.client;
 
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
-import io.micronaut.http.client.HttpClientConfiguration;
+import io.micronaut.http.client.HttpClient;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
@@ -19,18 +19,18 @@ import static io.reactivex.Flowable.fromIterable;
 
 public class ServiceList {
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(ServiceList.class));
-    private final HttpClientConfiguration configuration;
+    private final HttpClient httpClient;
     private List<PipeServiceInstance> services;
     private final PipeServiceInstance cloudInstance;
     private final File file;
     private ZonedDateTime lastUpdatedTime;
 
     public ServiceList(
-        final HttpClientConfiguration configuration,
+        HttpClient httpClient,
         final PipeServiceInstance pipeServiceInstance,
         File file
     ) throws IOException {
-        this.configuration = configuration;
+        this.httpClient = httpClient;
         this.cloudInstance = pipeServiceInstance;
         services = new ArrayList<>();
         lastUpdatedTime = null;
@@ -128,7 +128,7 @@ public class ServiceList {
 
     private PipeServiceInstance getServiceInstance(final URL url) {
         return findPreviousInstance(url)
-            .orElseGet(() -> new PipeServiceInstance(configuration, url));
+            .orElseGet(() -> new PipeServiceInstance(httpClient, url));
     }
 
     private Optional<PipeServiceInstance> findPreviousInstance(final URL url) {

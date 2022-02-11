@@ -2,6 +2,7 @@ package com.tesco.aqueduct.registry.client
 
 
 import io.micronaut.http.client.DefaultHttpClientConfiguration
+import io.micronaut.http.client.netty.DefaultHttpClient
 import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
@@ -23,7 +24,7 @@ class PipeLoadBalancerSpec extends Specification {
 
     def setup() {
         def config = new DefaultHttpClientConfiguration()
-        serviceList = new ServiceList(config, new PipeServiceInstance(config, URL_1), folder.newFile())
+        serviceList = new ServiceList(new DefaultHttpClient(), new PipeServiceInstance(new DefaultHttpClient(), URL_1), folder.newFile())
         loadBalancer = new PipeLoadBalancer(serviceList)
     }
 
