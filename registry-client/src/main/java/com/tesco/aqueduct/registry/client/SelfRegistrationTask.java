@@ -113,7 +113,7 @@ public class SelfRegistrationTask {
                     break;
             }
         } catch (HttpClientResponseException hcre) {
-            LOG.error("SelfRegistrationTask.register", "Register error [HttpClientResponseException]: %s", hcre.getMessage());
+            LOG.error("SelfRegistrationTask.register", "Register error [HttpClientResponseException]", hcre.getMessage());
         } catch (Exception e) {
             LOG.error("SelfRegistrationTask.register", "Register error", e);
         }
