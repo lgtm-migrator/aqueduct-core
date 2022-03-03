@@ -6,6 +6,7 @@ import com.tesco.aqueduct.registry.model.RegistryResponse
 import spock.lang.Specification
 import spock.lang.Unroll
 
+import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -23,6 +24,7 @@ class SelfRegistrationTaskSpec extends Specification {
         .following(Collections.emptyList())
         .lastSeen(ZonedDateTime.now())
         .build()
+    public static final Duration DELETIONS_THRESHOLD = Duration.ofDays(30)
 
     def upstreamClient = Mock(RegistryClient)
     def services = Mock(ServiceList)
@@ -91,7 +93,7 @@ class SelfRegistrationTaskSpec extends Specification {
     def 'till bootstraps in pipe and provider if it is stale'() {
         given: 'the node last registered 30+ days ago'
         def staleNode = MY_NODE.toBuilder()
-            .lastRegistrationTime(ZonedDateTime.now().minusDays(30))
+            .lastRegistrationTime(ZonedDateTime.now() - DELETIONS_THRESHOLD)
             .build()
 
         and: "registry response without bootstrap request"
@@ -102,7 +104,8 @@ class SelfRegistrationTaskSpec extends Specification {
             upstreamClient,
             { staleNode },
             services,
-            bootstrapService
+            bootstrapService,
+            DELETIONS_THRESHOLD
         )
 
         when:
@@ -118,7 +121,7 @@ class SelfRegistrationTaskSpec extends Specification {
     def 'till does not bootstrap if it is not stale'() {
         given: 'the node last registered < 30 days ago'
         def staleNode = MY_NODE.toBuilder()
-            .lastRegistrationTime(ZonedDateTime.now().minusDays(29))
+            .lastRegistrationTime(ZonedDateTime.now() - (DELETIONS_THRESHOLD - 1))
             .build()
 
         and: "registry response without bootstrap request"
@@ -129,7 +132,8 @@ class SelfRegistrationTaskSpec extends Specification {
             upstreamClient,
             { staleNode },
             services,
-            bootstrapService
+            bootstrapService,
+            DELETIONS_THRESHOLD
         )
 
         when:
@@ -173,7 +177,8 @@ class SelfRegistrationTaskSpec extends Specification {
             upstreamClient,
             { MY_NODE },
             services,
-            bootstrapService
+            bootstrapService,
+            DELETIONS_THRESHOLD
         )
     }
 }

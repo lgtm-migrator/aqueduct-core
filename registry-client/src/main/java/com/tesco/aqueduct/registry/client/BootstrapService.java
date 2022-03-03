@@ -4,6 +4,7 @@ import com.tesco.aqueduct.registry.model.BootstrapType;
 import com.tesco.aqueduct.registry.model.Bootstrapable;
 import com.tesco.aqueduct.registry.model.Resetable;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
@@ -11,6 +12,7 @@ import jakarta.inject.Singleton;
 import java.time.Duration;
 
 @Singleton
+@Requires(property = "registry.http.interval")
 public class BootstrapService {
     private final Bootstrapable provider;
     private final Bootstrapable pipe;

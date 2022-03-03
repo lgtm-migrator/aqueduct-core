@@ -5,16 +5,19 @@ import com.tesco.aqueduct.registry.model.Node;
 import com.tesco.aqueduct.registry.model.RegistryResponse;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.context.annotation.Context;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import jakarta.inject.Inject;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.time.ZonedDateTime;
 
 @Context
 @Requires(property = "registry.http.interval")
+@Requires(property = "persistence.compact.deletions.threshold")
 public class SelfRegistrationTask {
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(SelfRegistrationTask.class));
 
@@ -22,18 +25,21 @@ public class SelfRegistrationTask {
     private final SummarySupplier selfSummary;
     private final ServiceList services;
     private final BootstrapService bootstrapService;
+    private final Duration deletionsThreshold;
 
     @Inject
     public SelfRegistrationTask(
         final RegistryClient client,
         final SummarySupplier selfSummary,
         final ServiceList services,
-        final BootstrapService bootstrapService
+        final BootstrapService bootstrapService,
+        @Property(name = "persistence.compact.deletions.threshold") final Duration deletionsThreshold
     ) {
         this.client = client;
         this.selfSummary = selfSummary;
         this.services = services;
         this.bootstrapService = bootstrapService;
+        this.deletionsThreshold = deletionsThreshold;
     }
 
     @Scheduled(fixedRate = "${registry.http.interval}")
@@ -64,6 +70,6 @@ public class SelfRegistrationTask {
 
     private boolean isStale(Node node) {
         return node.getLastRegistrationTime() != null &&
-            node.getLastRegistrationTime().isBefore(ZonedDateTime.now().minusDays(30));
+            node.getLastRegistrationTime().isBefore(ZonedDateTime.now().minus(deletionsThreshold));
     }
 }
