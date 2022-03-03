@@ -14,5 +14,5 @@ public interface RegistryClient {
     @CircuitBreaker(delay = "${registry.http.client.delay}", attempts = "${registry.http.client.attempts}", reset = "${registry.http.client.reset}")
     @Post(uri = "/registry")
     @Header(name="Accept-Encoding", value="gzip, deflate")
-    RegistryResponse register(@Body Node node);
+    RegistryResponse registerAndConsumeBootstrapRequest(@Body Node node);
 }

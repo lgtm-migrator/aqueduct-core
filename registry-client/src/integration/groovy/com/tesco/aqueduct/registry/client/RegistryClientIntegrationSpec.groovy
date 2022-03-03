@@ -104,7 +104,7 @@ class RegistryClientIntegrationSpec extends Specification {
         }
 
         when: "We call register using the Micronaut client"
-        def response = client.register(myNode)
+        def response = client.registerAndConsumeBootstrapRequest(myNode)
 
         then: "We expect the dummy server to return a list of URLs"
         response.requestedToFollow.size() == 2

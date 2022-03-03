@@ -1,5 +1,6 @@
 package com.tesco.aqueduct.registry.client;
 
+import com.tesco.aqueduct.registry.model.BootstrapType;
 import com.tesco.aqueduct.registry.model.Node;
 import com.tesco.aqueduct.registry.model.RegistryResponse;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
@@ -9,6 +10,8 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import jakarta.inject.Inject;
 import org.slf4j.LoggerFactory;
+
+import java.time.ZonedDateTime;
 
 @Context
 @Requires(property = "registry.http.interval")
@@ -37,17 +40,30 @@ public class SelfRegistrationTask {
     void register() {
         try {
             final Node node = selfSummary.getSelfNode();
-            final RegistryResponse registryResponse = client.register(node);
+            final RegistryResponse registryResponse = client.registerAndConsumeBootstrapRequest(node);
+
             if (registryResponse.getRequestedToFollow() == null) {
                 LOG.error("SelfRegistrationTask.register", "Register error", "Null response received");
                 return;
             }
+
             services.update(registryResponse.getRequestedToFollow());
-            bootstrapService.bootstrap(registryResponse.getBootstrapType());
+
+            if (isStale(node)) {
+                LOG.info("SelfRegistrationTask.register", "Bootstrapping stale till");
+                bootstrapService.bootstrap(BootstrapType.PIPE_AND_PROVIDER);
+            } else {
+                bootstrapService.bootstrap(registryResponse.getBootstrapType());
+            }
         } catch (HttpClientResponseException hcre) {
             LOG.error("SelfRegistrationTask.register", "Register error [HttpClientResponseException]: %s", hcre.getMessage());
         } catch (Exception e) {
             LOG.error("SelfRegistrationTask.register", "Register error", e);
         }
+    }
+
+    private boolean isStale(Node node) {
+        return node.getLastRegistrationTime() != null &&
+            node.getLastRegistrationTime().isBefore(ZonedDateTime.now().minusDays(30));
     }
 }
