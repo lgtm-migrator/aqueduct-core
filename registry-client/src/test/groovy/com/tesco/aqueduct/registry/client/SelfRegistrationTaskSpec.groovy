@@ -148,7 +148,7 @@ class SelfRegistrationTaskSpec extends Specification {
     }
 
     @Unroll
-    def 'bootstrap related methods are called in correct combo and order depending on bootstrap type'() {
+    def 'bootstrap service is called with the correct type'() {
         given: "a registry client"
         def registryClient = selfRegistrationTask()
 
