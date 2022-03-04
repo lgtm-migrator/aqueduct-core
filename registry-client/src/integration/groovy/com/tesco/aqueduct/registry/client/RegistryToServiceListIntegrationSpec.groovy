@@ -90,8 +90,8 @@ class RegistryToServiceListIntegrationSpec extends Specification {
         pipeLoadBalancerHealthCheckTask = context.getBean(PipeLoadBalancerHealthCheckTask)
     }
 
-    def "given a new service endpoint by registry, the till starts to follow that"() {
-        given: "registry server which returns the new service URL"
+    def "given a new service host by registry, the till starts to follow that"() {
+        given: "registry server which returns the new service host"
         def serviceURL = serviceServer.getHttpUrl()
         cloudServer.expectations {
             POST("/v2/registry") {
@@ -103,7 +103,7 @@ class RegistryToServiceListIntegrationSpec extends Specification {
                 }
             }
         }
-        and: "service server is healthy"
+        and: "service host is healthy"
         serviceServer.expectations {
             GET("/pipe/_status") {
                 called(1)
@@ -116,12 +116,12 @@ class RegistryToServiceListIntegrationSpec extends Specification {
             }
         }
 
-        when: "SelfRegistrationTask calls registry server"
+        when: "SelfRegistrationTask calls registry"
         selfRegistrationTask.register()
         and: "service health check is called"
         pipeLoadBalancerHealthCheckTask.checkState()
 
-        then: "the new service URL is called"
+        then: "the new service health check is called"
         serviceServer.verify()
     }
 }
