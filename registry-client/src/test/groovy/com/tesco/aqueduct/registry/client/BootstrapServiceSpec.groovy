@@ -1,9 +1,10 @@
 package com.tesco.aqueduct.registry.client
 
-
 import com.tesco.aqueduct.registry.model.BootstrapType
 import com.tesco.aqueduct.registry.model.Bootstrapable
 import com.tesco.aqueduct.registry.model.Resetable
+import io.micronaut.context.ApplicationContext
+import io.micronaut.inject.qualifiers.Qualifiers
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -15,7 +16,19 @@ class BootstrapServiceSpec extends Specification {
     BootstrapService bootstrapService
 
     void setup() {
-        bootstrapService = new BootstrapService(provider, pipe, controller, corruptionManager, "0.001S", 1)
+        def context = ApplicationContext
+            .builder()
+            .properties(
+                "registry.http.interval": "PT0.001S",
+                "pipe.bootstrap.delay": "1"
+            )
+            .build()
+            .registerSingleton(Bootstrapable.class, provider, Qualifiers.byName("provider"))
+            .registerSingleton(Bootstrapable.class, pipe, Qualifiers.byName("pipe"))
+            .registerSingleton(Bootstrapable.class, controller, Qualifiers.byName("controller"))
+            .registerSingleton(Resetable.class, corruptionManager, Qualifiers.byName("corruptionManager"))
+            .start()
+        bootstrapService = context.getBean(BootstrapService)
     }
 
     @Unroll
