@@ -24,14 +24,14 @@ public class BootstrapService {
                             @Named("pipe") final Bootstrapable pipe,
                             @Named("controller") final Bootstrapable controller,
                             @Named("corruptionManager") Resetable corruptionManager,
-                            @Property(name = "registry.http.interval") final Duration retryInterval,
+                            @Property(name = "registry.http.interval") final String retryInterval,
                             @Value("${pipe.bootstrap.delay:300000}") final int additionalDelay // 5 minutes extra to allow all nodes to reset
     ) {
         this.provider = provider;
         this.pipe = pipe;
         this.controller = controller;
         this.corruptionManager = corruptionManager;
-        this.bootstrapDelayMs = retryInterval.toMillis() + additionalDelay;
+        this.bootstrapDelayMs = Duration.parse("PT" + retryInterval).toMillis() + additionalDelay;
     }
 
     public void bootstrap(BootstrapType bootstrapType) throws Exception {
