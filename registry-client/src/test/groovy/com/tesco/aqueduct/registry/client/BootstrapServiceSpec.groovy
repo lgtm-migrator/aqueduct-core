@@ -19,7 +19,7 @@ class BootstrapServiceSpec extends Specification {
         def context = ApplicationContext
             .builder()
             .properties(
-                "registry.http.interval": "0.001S",
+                "registry.http.interval": "1ms",
                 "pipe.bootstrap.delay": "1"
             )
             .build()
