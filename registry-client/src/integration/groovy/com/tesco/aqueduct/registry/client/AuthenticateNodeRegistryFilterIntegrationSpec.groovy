@@ -69,7 +69,7 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
             .build()
 
         when: "the node is registered"
-        client.register(myNode)
+        client.registerAndConsumeBootstrapRequest(myNode)
 
         then: "the server receives the auth"
         server.verify()
@@ -117,7 +117,7 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
             .build()
 
         def client = context.getBean(RegistryClient)
-        def response = client.register(myNode)
+        def response = client.registerAndConsumeBootstrapRequest(myNode)
 
         then: "a list of expected urls are returned"
         response.requestedToFollow == [new URL(host1), new URL(host2)]
