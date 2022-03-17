@@ -53,12 +53,6 @@ public class PostgreSQLNodeRequestStorage implements NodeRequestStorage {
 
     @Override
     public BootstrapType requiresBootstrap(Node node) throws SQLException {
-
-        if(node.getLastRegistrationTime() != null
-            && node.getLastRegistrationTime().isBefore(ZonedDateTime.now().minusDays(30))) {
-            LOG.info("requiresBootstrap", node.getHost() + " stale device");
-        }
-
         try (Connection connection = getConnection()) {
             BootstrapType bootstrapType = readBootstrapType(node.getHost(), connection);
             if (bootstrapType != BootstrapType.NONE) {
