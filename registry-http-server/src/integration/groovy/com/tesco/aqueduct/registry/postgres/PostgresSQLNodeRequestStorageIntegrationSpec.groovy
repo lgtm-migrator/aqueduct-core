@@ -135,32 +135,4 @@ class PostgresSQLNodeRequestStorageIntegrationSpec extends Specification {
         then: "bootstrap is not returned"
         response == BootstrapType.NONE
     }
-
-    @Unroll
-    def "#comment"() {
-        given: "a node with last registration time"
-        def node = Node.builder()
-            .localUrl(new URL("http://test_node_1"))
-            .lastRegistrationTime(lastRegistrationTime)
-            .build()
-
-        when: "we check if it requires a bootstrap"
-        def bootstrapType = nodeRequestStorage.requiresBootstrap(node)
-
-        then: "bootstrap type is none"
-        bootstrapType == BootstrapType.NONE
-
-        and: "count of stale devices log is consistent with expectation"
-        TestAppender.getEvents().stream()
-        .filter {
-            it.loggerName.contains("PostgreSQLNodeRequestStorage")
-            && it.message.contains("stale device")
-        }.count() == expectedLogCount
-
-        where:
-        lastRegistrationTime              | comment                                                          | expectedLogCount
-        ZonedDateTime.now().minusDays(31) | "Node offline for more than 30 days receives bootstrap"          | 1
-        ZonedDateTime.now().minusDays(29) | "Node offline for less than 30 days does not receive bootstrap"  | 0
-        null                              | "Node with no last registration time does not receive bootstrap" | 0
-    }
 }
