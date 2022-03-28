@@ -3,17 +3,22 @@ package com.tesco.aqueduct.registry.client;
 import com.tesco.aqueduct.registry.model.BootstrapType;
 import com.tesco.aqueduct.registry.model.Bootstrapable;
 import com.tesco.aqueduct.registry.model.Resetable;
+import com.tesco.aqueduct.registry.utils.RegistryLogger;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Requires;
 import io.micronaut.context.annotation.Value;
 import jakarta.inject.Named;
 import jakarta.inject.Singleton;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 
 @Singleton
 @Requires(property = "registry.http.interval")
 public class BootstrapService {
+
+    private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(BootstrapService.class));
+
     private final Bootstrapable provider;
     private final Bootstrapable pipe;
     private final Bootstrapable controller;
@@ -35,6 +40,8 @@ public class BootstrapService {
     }
 
     public void bootstrap(BootstrapType bootstrapType) throws Exception {
+        LOG.info("bootstrap", "Bootstrapping in " + bootstrapType + " mode");
+
         switch (bootstrapType) {
             case PROVIDER:
                 provider.stop();
