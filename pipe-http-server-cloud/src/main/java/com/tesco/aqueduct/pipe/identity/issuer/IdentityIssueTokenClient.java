@@ -13,7 +13,9 @@ import io.reactivex.Single;
 public interface IdentityIssueTokenClient {
 
     @Post(value = "${authentication.identity.issue.token.path}", consumes = "${authentication.identity.consumes}")
-    @CircuitBreaker(delay = "${authentication.identity.delay}", attempts = "${authentication.identity.attempts}")
+    @CircuitBreaker(delay = "${authentication.identity.delay}",  reset = "${authentication.identity.reset}",
+            multiplier = "${authentication.identity.multiplier}", maxDelay = "${authentication.identity.max-delay}" ,
+            attempts = "${authentication.identity.attempts}")
     Single<IssueTokenResponse> retrieveIdentityToken(
         @Header("TraceId") String traceId,
         @Body IssueTokenRequest issueTokenRequest

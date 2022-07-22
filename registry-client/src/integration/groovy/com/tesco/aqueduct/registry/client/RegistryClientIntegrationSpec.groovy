@@ -6,6 +6,7 @@ import com.tesco.aqueduct.pipe.api.TokenProvider
 import com.tesco.aqueduct.registry.model.BootstrapType
 import com.tesco.aqueduct.registry.model.Node
 import io.micronaut.context.ApplicationContext
+import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.reactivex.Single
 import spock.lang.AutoCleanup
 import spock.lang.Shared
@@ -41,8 +42,10 @@ class RegistryClientIntegrationSpec extends Specification {
             .properties(
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
                 "registry.http.client.delay": "500ms",
-                "registry.http.client.attempts": "1",
-                "registry.http.client.reset": "1s",
+                "registry.http.client.attempts": "2",
+                "registry.http.client.reset": "15m",
+                "registry.http.client.maxDelay": "15m",
+                "registry.http.client.multiplier": "2",
             )
             .build()
             .registerSingleton(tokenProvider)
@@ -65,9 +68,9 @@ class RegistryClientIntegrationSpec extends Specification {
         server.expectations {
             POST("/v2/registry") {
                 header("Accept-Encoding", "gzip, deflate")
-
                 responder {
                     contentType("application/json")
+
                     body("""{"requestedToFollow" : [ "$HOST_1", "$HOST_2" ], "bootstrapType" : "NONE"}""")
                 }
             }
@@ -81,8 +84,41 @@ class RegistryClientIntegrationSpec extends Specification {
         response.bootstrapType == BootstrapType.NONE
     }
 
+    def "Register request failed with 5XXX errors after some retries and delay"() {
+        given: "a node"
+        def node = Node.builder()
+                .group("1234")
+                .localUrl(new URL("http://localhost"))
+                .offset(0)
+                .status(INITIALISING)
+                .lastSeen(ZonedDateTime.now())
+                .build()
+
+        and: "a error response from the server"
+        server.clearExpectations()
+        server.expectations {
+            POST("/v2/registry") {
+                header("Accept-Encoding", "gzip, deflate")
+                called(3)
+                responder {
+                    code(500)
+                }
+            }
+        }
+
+        when: "we call register with a node"
+        client.registerAndConsumeBootstrapRequest(node)
+
+        then: "Register request is invoked and retry connection as per configured times and delay"
+        server.verify()
+
+        and:
+        thrown(HttpClientResponseException)
+    }
+
     def tokenProvider = Mock(TokenProvider) {
         retrieveIdentityToken() >> Single.just(Mock(IdentityToken))
     }
+
 }
 
