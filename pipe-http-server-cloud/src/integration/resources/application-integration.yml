@@ -62,6 +62,9 @@ authentication:
     validate.token.path: "${IDENTITY_VALIDATE_TOKEN_PATH}"
     issue.token.path: "${IDENTITY_ISSUE_TOKEN_PATH}"
     delay: 500ms
+    multiplier: 3
+    max-delay: 15m
+    reset: 300ms
     attempts: 3
     client:
       id: "${IDENTITY_CLIENT_ID}"

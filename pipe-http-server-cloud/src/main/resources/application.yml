@@ -68,6 +68,9 @@ datasources:
 authentication:
   identity:
     delay: 500ms
+    multiplier: 3
+    max-delay: 15m
+    reset: 300ms
     attempts: 3
     consumes: "${IDENTITY_CONSUMES}"
 

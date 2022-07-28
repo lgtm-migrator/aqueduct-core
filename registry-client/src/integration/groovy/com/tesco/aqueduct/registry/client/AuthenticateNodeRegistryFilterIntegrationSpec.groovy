@@ -50,6 +50,8 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
                 "pipe.http.client.url": server.getHttpUrl(),
                 "registry.http.client.delay": "500ms",
                 "registry.http.client.attempts": "1",
+                "registry.http.client.max-delay": "1m",
+                "registry.http.client.multiplier": "2",
                 "registry.http.client.reset": "1s",
                 "registry.http.client.url": server.getHttpUrl() + "/v2",
             )
@@ -101,6 +103,8 @@ class AuthenticateNodeRegistryFilterIntegrationSpec extends Specification {
                 "registry.http.client.url": server.getHttpUrl() + basePath + "/v2",
                 "registry.http.client.delay": "500ms",
                 "registry.http.client.attempts": "1",
+                "registry.http.client.max-delay": "1m",
+                "registry.http.client.multiplier": "2",
                 "registry.http.client.reset": "1s",
             )
             .build()
