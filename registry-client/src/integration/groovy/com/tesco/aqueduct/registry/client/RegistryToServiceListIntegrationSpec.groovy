@@ -67,6 +67,8 @@ class RegistryToServiceListIntegrationSpec extends Specification {
                 "registry.http.client.url": cloudServer.getHttpUrl() + "/v2",
                 "registry.http.client.delay": "500ms",
                 "registry.http.client.attempts": "1",
+                "registry.http.client.max-delay": "1m",
+                "registry.http.client.multiplier": "2",
                 "registry.http.client.reset": "1s",
                 "registry.http.interval": "15m",
                 "pipe.http.client.healthcheck.interval": "15m",

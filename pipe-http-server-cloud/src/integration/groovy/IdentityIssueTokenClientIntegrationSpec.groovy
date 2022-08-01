@@ -48,6 +48,9 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
                     issue.token.path:   "$ISSUE_TOKEN_PATH"
                     attempts:           3
                     delay:              500ms
+                    max-delay :          15m
+                    multiplier:         2
+                    reset:              1m
                     consumes:           "application/token+json"
                     client:
                      id:                "$CLIENT_ID"
@@ -59,7 +62,6 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
             .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("pipe"))
             .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("registry"))
             .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("compaction"))
-
         context.start()
 
         def server = context.getBean(EmbeddedServer)
@@ -143,7 +145,6 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
                 }
             }
         }
-
         and: "identity issue token client bean"
         IdentityIssueTokenClient identityIssueTokenClient = context.getBean(IdentityIssueTokenClient)
 
@@ -158,13 +159,13 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
         and:
         thrown(HttpClientResponseException)
 
-        when:
+        when: "get issued token through Identity client"
         identityIssueTokenClient.retrieveIdentityToken(
-            "someTraceId", new IssueTokenRequest(CLIENT_ID, CLIENT_SECRET)
+                "someTraceId", new IssueTokenRequest(CLIENT_ID, CLIENT_SECRET)
         ).blockingGet()
 
-        then:
-        identityMockService.verify()
+        then: "CircuitBreaker will return error without reaching identity service after retrying 4 times"
+        0*identityMockService.verify()
 
         and:
         thrown(HttpClientResponseException)
@@ -174,4 +175,5 @@ class IdentityIssueTokenClientIntegrationSpec extends Specification {
         def loader = new YamlPropertySourceLoader()
         loader.read("config", str.bytes)
     }
+
 }
