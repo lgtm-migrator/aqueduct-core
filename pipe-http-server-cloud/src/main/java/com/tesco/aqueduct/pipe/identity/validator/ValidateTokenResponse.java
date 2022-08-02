@@ -21,14 +21,17 @@ public class ValidateTokenResponse {
         private static final String CONFIDENCE_LEVEL_CLAIM = "http://schemas.tesco.com/ws/2011/12/identity/claims/confidencelevel";
 
         private String claimType, value;
+        Collection<Object> values;
 
         @JsonCreator
         Claim(
             @JsonProperty(value = "claimType", required = true) String claimType,
-            @JsonProperty(value = "value", required = true) String value
-        ) {
+            @JsonProperty(value = "value", required = false) String value,
+            @JsonProperty(value = "values", required = false) Collection<Object> values
+            ) {
             this.claimType = claimType;
             this.value = value;
+            this.values = values;
         }
 
         boolean isForConfidenceLevel(){
