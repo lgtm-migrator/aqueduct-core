@@ -9,6 +9,7 @@ import com.tesco.aqueduct.registry.client.ServiceList
 import io.micronaut.context.ApplicationContext
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.http.client.netty.DefaultHttpClient
+import io.micronaut.retry.annotation.CircuitBreaker
 import org.junit.Rule
 import spock.lang.AutoCleanup
 import spock.lang.Shared
@@ -26,6 +27,8 @@ class InternalBrotliHttpPipeClientIntegrationSpec extends Specification {
 
     InternalBrotliHttpPipeClient client
 
+
+
     def setup() {
         context = ApplicationContext
             .builder()
@@ -33,6 +36,8 @@ class InternalBrotliHttpPipeClientIntegrationSpec extends Specification {
                 "pipe.http.client.attempts": 1,
                 "pipe.http.client.delay": "500ms",
                 "pipe.http.client.reset": "1s",
+                "pipe.http.client.max-delay":"15m",
+                "pipe.http.client.multiplier":3,
                 "pipe.http.client.url": wireMockRule.baseUrl(),
                 "registry.http.client.url": wireMockRule.baseUrl() + "/v2",
                 "micronaut.caches.health-check.maximum-size": 20,

@@ -16,7 +16,11 @@ public interface InternalBrotliHttpPipeClient extends InternalHttpPipeClient {
     @Get("/pipe/{offset}{?type,location}")
     @Consumes
     @Header(name="Accept-Encoding", value="br")
-    @CircuitBreaker(delay = "${pipe.http.client.delay}", attempts = "${pipe.http.client.attempts}", reset = "${pipe.http.client.reset}")
+    @CircuitBreaker(delay = "${pipe.http.client.delay}",
+            maxDelay = "${pipe.http.client.max-delay}",
+            multiplier = "${pipe.http.client.multiplier}",
+            attempts = "${pipe.http.client.attempts}",
+            reset = "${pipe.http.client.reset}")
     HttpResponse<byte[]> httpRead(
         @Nullable List<String> type,
         long offset,

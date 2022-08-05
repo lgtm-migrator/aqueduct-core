@@ -127,6 +127,8 @@ class AuthenticatePipeReadFilterIntegrationSpec extends Specification {
                     "pipe.http.client.attempts": 1,
                     "pipe.http.client.delay": "500ms",
                     "pipe.http.client.reset": "1s",
+                    "pipe.http.client.max-delay":"15m",
+                    "pipe.http.client.multiplier":3,
                     "pipe.http.client.url": "cloudIP",
                     "registry.http.client.url": "cloudIP"
                 )
