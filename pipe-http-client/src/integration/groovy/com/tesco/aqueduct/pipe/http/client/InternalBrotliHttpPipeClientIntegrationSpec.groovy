@@ -9,7 +9,6 @@ import com.tesco.aqueduct.registry.client.ServiceList
 import io.micronaut.context.ApplicationContext
 import io.micronaut.http.client.exceptions.HttpClientResponseException
 import io.micronaut.http.client.netty.DefaultHttpClient
-import io.micronaut.retry.annotation.CircuitBreaker
 import org.junit.Rule
 import spock.lang.AutoCleanup
 import spock.lang.Shared
