@@ -26,6 +26,8 @@ class InternalBrotliHttpPipeClientIntegrationSpec extends Specification {
 
     InternalBrotliHttpPipeClient client
 
+
+
     def setup() {
         context = ApplicationContext
             .builder()
@@ -33,6 +35,8 @@ class InternalBrotliHttpPipeClientIntegrationSpec extends Specification {
                 "pipe.http.client.attempts": 1,
                 "pipe.http.client.delay": "500ms",
                 "pipe.http.client.reset": "1s",
+                "pipe.http.client.max-delay":"15m",
+                "pipe.http.client.multiplier":3,
                 "pipe.http.client.url": wireMockRule.baseUrl(),
                 "registry.http.client.url": wireMockRule.baseUrl() + "/v2",
                 "micronaut.caches.health-check.maximum-size": 20,

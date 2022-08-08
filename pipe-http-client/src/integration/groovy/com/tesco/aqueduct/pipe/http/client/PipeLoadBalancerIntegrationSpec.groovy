@@ -52,6 +52,8 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
                     "pipe.http.client.attempts": 1,
                     "pipe.http.client.delay": "1ms",
                     "pipe.http.client.reset": "5ms",
+                    "pipe.http.client.max-delay":"15m",
+                    "pipe.http.client.multiplier":3,
                     "pipe.http.latest-offset.attempts": 1,
                     "pipe.http.latest-offset.delay": "1s"
                 ] + properties
