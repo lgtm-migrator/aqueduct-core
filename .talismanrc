@@ -1,7 +1,0 @@
-fileignoreconfig:
-- filename: pipe-http-server-cloud/src/test/groovy/ValidateTokenResponseSpec.groovy
-  checksum: ccb9c02cbd3e96f91b0825fb793e2a4a5d4e1b4977fde86653b480839df18419
-- filename: pipe-http-server-cloud/src/main/java/com/tesco/aqueduct/pipe/identity/validator/ValidateTokenResponse.java
-  checksum: 6751e9d12c8a299fa3a0648d1d0b3b9c1c09c6c2b16ce09627329cd518b886c4
-version: ""
-
