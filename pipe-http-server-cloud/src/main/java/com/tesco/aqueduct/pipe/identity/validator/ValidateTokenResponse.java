@@ -19,16 +19,18 @@ public class ValidateTokenResponse {
 
     static class Claim {
         private static final String CONFIDENCE_LEVEL_CLAIM = "http://schemas.tesco.com/ws/2011/12/identity/claims/confidencelevel";
+        private static final String FORMER_USER_KEY_CLAIM = "http://schemas.tesco.com/ws/2018/05/identity/claims/formeruserkeys";
+        private static final String MERGED_CLAIM = "http://schemas.tesco.com/ws/2011/12/identity/claims/merged";
 
         private String claimType, value;
-        Collection<Object> values;
+        private Collection<Values> values;
 
         @JsonCreator
         Claim(
-            @JsonProperty(value = "claimType", required = true) String claimType,
-            @JsonProperty(value = "value", required = false) String value,
-            @JsonProperty(value = "values", required = false) Collection<Object> values
-            ) {
+                @JsonProperty(value = "claimType", required = true) String claimType,
+                @JsonProperty(value = "value") String value,
+                @JsonProperty(value = "values") Collection<Values> values
+        ) {
             this.claimType = claimType;
             this.value = value;
             this.values = values;
@@ -39,11 +41,34 @@ public class ValidateTokenResponse {
         }
     }
 
+    static class Values{
+        private String uuid;
+
+        @JsonCreator
+        Values(
+                @JsonProperty(value="uuid") String uuid
+        ){
+            this.uuid = uuid;
+        }
+    }
+
+    static class MultiKeyValues extends Values{
+        private String uuidType;
+
+        MultiKeyValues(
+                @JsonProperty(value="uuid") String uuid,
+                @JsonProperty(value="uuidType") String uuidType
+        ){
+            super(uuid);
+            this.uuidType = uuidType;
+        }
+    }
+
     @JsonCreator
     ValidateTokenResponse(
-        @JsonProperty(value = "UserId") String userId,
-        @JsonProperty(value = "Status", required = true) String status,
-        @JsonProperty(value = "Claims") Collection<Claim> claims
+            @JsonProperty(value = "UserId") String userId,
+            @JsonProperty(value = "Status", required = true) String status,
+            @JsonProperty(value = "Claims") Collection<Claim> claims
     ) {
         this.userId = userId;
         this.status = status;
@@ -56,10 +81,10 @@ public class ValidateTokenResponse {
 
     private int determineConfidenceLevel() {
         return claims.stream()
-            .filter(Claim::isForConfidenceLevel)
-            .mapToInt(claim -> Integer.parseInt(claim.value))
-            .findFirst()
-            .orElse(0);
+                .filter(Claim::isForConfidenceLevel)
+                .mapToInt(claim -> Integer.parseInt(claim.value))
+                .findFirst()
+                .orElse(0);
     }
 
     boolean isTokenValid() {
