@@ -54,7 +54,8 @@ public class SelfRegistrationTask {
                 return;
             }
             else {
-                LOG.debug("SelfRegistrationTask.register", "Register response received. BootstrapType "+registryResponse.getBootstrapType()+"Requested to follow"+registryResponse.getRequestedToFollow());
+                LOG.info("SelfRegistrationTask.register", "Register response received.");
+                LOG.debug("SelfRegistrationTask.register", "BootstrapType "+registryResponse.getBootstrapType()+" Requested to follow: "+registryResponse.getRequestedToFollow());
             }
             services.update(registryResponse.getRequestedToFollow());
 
