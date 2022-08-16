@@ -48,11 +48,14 @@ public class SelfRegistrationTask {
             final Node node = selfSummary.getSelfNode();
             final RegistryResponse registryResponse = client.registerAndConsumeBootstrapRequest(node);
 
+
             if (registryResponse.getRequestedToFollow() == null) {
                 LOG.error("SelfRegistrationTask.register", "Register error", "Null response received");
                 return;
             }
-
+            else {
+                LOG.debug("SelfRegistrationTask.register", "Register response received. BootstrapType "+registryResponse.getBootstrapType()+"Requested to follow"+registryResponse.getRequestedToFollow());
+            }
             services.update(registryResponse.getRequestedToFollow());
 
             if (isStale(node)) {
