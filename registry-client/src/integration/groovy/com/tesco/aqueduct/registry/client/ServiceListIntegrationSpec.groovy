@@ -68,7 +68,7 @@ class ServiceListIntegrationSpec extends Specification {
 
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(status)
                 }
             }
@@ -80,13 +80,13 @@ class ServiceListIntegrationSpec extends Specification {
     ErsatzServer serverWithPipeStatus(String path, int status) {
         ErsatzServer server = new ErsatzServer()
         server.expectations {
-            String urlAsString = UriBuilder.of(URI.create(path)).path("/pipe/_status").build().toString();
+            String urlAsString = UriBuilder.of(URI.create(path)).path("/pipe/_status").build().toString()
             GET(urlAsString) {
                 called(1)
 
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(status)
                 }
             }

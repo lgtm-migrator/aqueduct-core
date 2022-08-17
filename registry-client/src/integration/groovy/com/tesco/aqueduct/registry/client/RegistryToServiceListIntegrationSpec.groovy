@@ -17,6 +17,7 @@ import spock.lang.Specification
 import java.time.ZonedDateTime
 
 import static com.tesco.aqueduct.registry.model.Status.INITIALISING
+import static org.hamcrest.Matchers.greaterThanOrEqualTo
 
 class RegistryToServiceListIntegrationSpec extends Specification {
     @Shared
@@ -55,7 +56,7 @@ class RegistryToServiceListIntegrationSpec extends Specification {
             GET("/pipe/_status") {
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(200)
                 }
             }
@@ -108,11 +109,11 @@ class RegistryToServiceListIntegrationSpec extends Specification {
         and: "service host is healthy"
         serviceServer.expectations {
             GET("/pipe/_status") {
-                called(1)
+                called(greaterThanOrEqualTo(1))
 
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(200)
                 }
             }

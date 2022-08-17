@@ -213,7 +213,7 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
 
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(200)
                 }
             }

@@ -1,18 +1,23 @@
 package com.tesco.aqueduct.registry.client;
 
+import com.tesco.aqueduct.pipe.api.JsonHelper;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.discovery.ServiceInstance;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.uri.UriBuilder;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import jakarta.inject.Inject;
+import lombok.Data;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 public class PipeServiceInstance implements ServiceInstance {
 
@@ -20,6 +25,8 @@ public class PipeServiceInstance implements ServiceInstance {
     private final URL url;
     private boolean up = true;
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(PipeServiceInstance.class));
+
+    private static final String DEFAULT_STATUS_VERSION = "0.0.0";
 
     @Inject
     public PipeServiceInstance(final HttpClient httpClient, final URL url) {
@@ -67,9 +74,20 @@ public class PipeServiceInstance implements ServiceInstance {
 
     Completable updateState() {
         return Single.defer(() -> Single.just(withStatusUrlFromBaseUri())).
-            flatMap(uri -> Single.fromPublisher(httpClient.retrieve(uri)))
-            // if got response, then it's a true
-            .map(response -> true)
+            flatMap(uri -> Single.fromPublisher(httpClient.exchange(uri)))
+            .map(byteBuffer -> {
+                if (byteBuffer.getBody().isPresent()) {
+                    String responseString = new String(Objects.requireNonNull(byteBuffer.body()).toByteArray(), StandardCharsets.UTF_8);
+                    Status responseStatus = JsonHelper.MAPPER.readValue(responseString, Status.class);
+                    if (StringUtils.isNotEmpty(responseStatus.getVersion()) && !responseStatus.getVersion().equals(DEFAULT_STATUS_VERSION)) {
+                        return true;
+                    } else {
+                        throw new RuntimeException("invalid response with body: " + responseString);
+                    }
+                }
+                throw new RuntimeException("response body is not present");
+            })
+
             // log result
             .doOnSuccess(b -> LOG.debug("healthcheck.success", url.toString()))
             .doOnError(this::logError)
@@ -102,5 +120,11 @@ public class PipeServiceInstance implements ServiceInstance {
             relativeURI.getQuery(),
             relativeURI.getFragment()
         );
+    }
+
+    @Data
+    private static class Status {
+        private final String status;
+        private final String version;
     }
 }

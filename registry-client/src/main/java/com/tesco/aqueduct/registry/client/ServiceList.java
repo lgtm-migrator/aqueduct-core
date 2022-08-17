@@ -117,6 +117,7 @@ public class ServiceList {
         services = urls.stream()
             .map(this::getServiceInstance)
             .collect(Collectors.toList());
+        //updateState();
     }
 
     private void defaultToCloud() {
