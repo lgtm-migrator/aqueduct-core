@@ -88,6 +88,28 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
         ErsatzServer serverB = new ErsatzServer()
 
         serverB.start()
+
+        and: "service host is healthy"
+        serverA.expectations {
+            GET("/pipe/_status") {
+                called(greaterThanOrEqualTo(1))
+                responder {
+                    contentType('application/json')
+                    body('{"status": "ok","version": "0.1.377"}')
+                    code(200)
+                }
+            }
+        }
+        serverB.expectations {
+            GET("/pipe/_status") {
+                called(greaterThanOrEqualTo(1))
+                responder {
+                    contentType('application/json')
+                    body('{"status": "ok","version": "0.1.377"}')
+                    code(200)
+                }
+            }
+        }
         serviceList.update([URL(serverA.httpUrl), URL(serverB.httpUrl)])
 
         serverA.expectations {
@@ -188,6 +210,19 @@ class PipeLoadBalancerIntegrationSpec extends Specification {
                             "data": "{ \\"valid\\": \\"json\\" }"
                         }
                     ]""")
+                }
+            }
+        }
+
+        and: "service host is healthy"
+        serverA.expectations {
+            GET("/foo/pipe/_status") {
+                called(greaterThanOrEqualTo(1))
+
+                responder {
+                    contentType('application/json')
+                    body('{"status": "ok","version": "0.1.377"}')
+                    code(200)
                 }
             }
         }

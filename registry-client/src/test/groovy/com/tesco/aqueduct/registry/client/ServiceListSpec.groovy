@@ -54,7 +54,10 @@ class ServiceListSpec extends Specification {
 
     def "when services are updated, previous services keep their status"() {
         given: "a service list"
-        ServiceList serviceList = new ServiceList(new DefaultHttpClient(), serviceInstance, existingPropertiesFile)
+        ServiceList serviceList = new ServiceList(new DefaultHttpClient(), serviceInstance, existingPropertiesFile) {
+            @Override
+            public void updateState() {}
+        }
 
         and: "the service list has been updated before"
         serviceList.update([URL_1, URL_2])

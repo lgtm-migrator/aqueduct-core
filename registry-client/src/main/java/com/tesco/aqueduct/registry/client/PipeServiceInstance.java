@@ -1,9 +1,12 @@
 package com.tesco.aqueduct.registry.client;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.tesco.aqueduct.pipe.api.JsonHelper;
 import com.tesco.aqueduct.registry.utils.RegistryLogger;
+import io.micronaut.core.io.buffer.ByteBuffer;
 import io.micronaut.core.util.StringUtils;
 import io.micronaut.discovery.ServiceInstance;
+import io.micronaut.http.HttpResponse;
 import io.micronaut.http.client.HttpClient;
 import io.micronaut.http.uri.UriBuilder;
 import io.reactivex.Completable;
@@ -75,19 +78,7 @@ public class PipeServiceInstance implements ServiceInstance {
     Completable updateState() {
         return Single.defer(() -> Single.just(withStatusUrlFromBaseUri())).
             flatMap(uri -> Single.fromPublisher(httpClient.exchange(uri)))
-            .map(byteBuffer -> {
-                if (byteBuffer.getBody().isPresent()) {
-                    String responseString = new String(Objects.requireNonNull(byteBuffer.body()).toByteArray(), StandardCharsets.UTF_8);
-                    Status responseStatus = JsonHelper.MAPPER.readValue(responseString, Status.class);
-                    if (StringUtils.isNotEmpty(responseStatus.getVersion()) && !responseStatus.getVersion().equals(DEFAULT_STATUS_VERSION)) {
-                        return true;
-                    } else {
-                        throw new RuntimeException("invalid response with body: " + responseString);
-                    }
-                }
-                throw new RuntimeException("response body is not present");
-            })
-
+            .map(this::verifyHttpResponse)
             // log result
             .doOnSuccess(b -> LOG.debug("healthcheck.success", url.toString()))
             .doOnError(this::logError)
@@ -120,6 +111,19 @@ public class PipeServiceInstance implements ServiceInstance {
             relativeURI.getQuery(),
             relativeURI.getFragment()
         );
+    }
+
+    private boolean verifyHttpResponse(HttpResponse<ByteBuffer> response) throws JsonProcessingException {
+        if (response.getBody().isPresent()) {
+            String responseString = new String(Objects.requireNonNull(response.body()).toByteArray(), StandardCharsets.UTF_8);
+            Status responseStatus = JsonHelper.MAPPER.readValue(responseString, Status.class);
+            if (StringUtils.isNotEmpty(responseStatus.getVersion()) && !responseStatus.getVersion().equals(DEFAULT_STATUS_VERSION)) {
+                return true;
+            } else {
+                throw new RuntimeException("invalid response with body: " + responseString);
+            }
+        }
+        throw new RuntimeException("response body is not present");
     }
 
     @Data
