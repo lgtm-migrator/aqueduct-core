@@ -24,7 +24,10 @@ class PipeLoadBalancerSpec extends Specification {
 
     def setup() {
         def config = new DefaultHttpClientConfiguration()
-        serviceList = new ServiceList(new DefaultHttpClient(), new PipeServiceInstance(new DefaultHttpClient(), URL_1), folder.newFile())
+        serviceList = new ServiceList(new DefaultHttpClient(), new PipeServiceInstance(new DefaultHttpClient(), URL_1), folder.newFile()) {
+            @Override
+            public void updateState() {}
+        }
         loadBalancer = new PipeLoadBalancer(serviceList)
     }
 

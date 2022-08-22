@@ -20,7 +20,7 @@ import static io.reactivex.Flowable.fromIterable;
 public class ServiceList {
     private static final RegistryLogger LOG = new RegistryLogger(LoggerFactory.getLogger(ServiceList.class));
     private final HttpClient httpClient;
-    private List<PipeServiceInstance> services;
+    List<PipeServiceInstance> services;
     private final PipeServiceInstance cloudInstance;
     private final File file;
     private ZonedDateTime lastUpdatedTime;
@@ -117,6 +117,7 @@ public class ServiceList {
         services = urls.stream()
             .map(this::getServiceInstance)
             .collect(Collectors.toList());
+        updateState();
     }
 
     private void defaultToCloud() {

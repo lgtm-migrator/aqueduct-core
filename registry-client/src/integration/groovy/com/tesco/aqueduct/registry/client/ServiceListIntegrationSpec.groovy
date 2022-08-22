@@ -8,6 +8,8 @@ import org.junit.Rule
 import org.junit.rules.TemporaryFolder
 import spock.lang.Specification
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo
+
 @Newify(URL)
 class ServiceListIntegrationSpec extends Specification {
     final static URL URL_1 = URL("http://a1")
@@ -64,11 +66,11 @@ class ServiceListIntegrationSpec extends Specification {
         ErsatzServer server = new ErsatzServer()
         server.expectations {
             GET("/pipe/_status") {
-                called(1)
+                called(greaterThanOrEqualTo(1))
 
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(status)
                 }
             }
@@ -80,13 +82,13 @@ class ServiceListIntegrationSpec extends Specification {
     ErsatzServer serverWithPipeStatus(String path, int status) {
         ErsatzServer server = new ErsatzServer()
         server.expectations {
-            String urlAsString = UriBuilder.of(URI.create(path)).path("/pipe/_status").build().toString();
+            String urlAsString = UriBuilder.of(URI.create(path)).path("/pipe/_status").build().toString()
             GET(urlAsString) {
-                called(1)
+                called(greaterThanOrEqualTo(1))
 
                 responder {
                     contentType('application/json')
-                    body("""[]""")
+                    body('{"status": "ok","version": "0.1.377"}')
                     code(status)
                 }
             }

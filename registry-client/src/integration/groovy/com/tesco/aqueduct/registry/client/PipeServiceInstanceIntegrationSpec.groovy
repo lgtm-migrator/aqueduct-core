@@ -23,7 +23,7 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
             get(urlEqualTo("/pipe/_status"))
                 .willReturn(aResponse()
                     .withStatus(200)
-                    .withBody("a response")
+                    .withBody('{"status": "ok","version": "0.1.377"}')
                 )
         )
 
@@ -44,7 +44,7 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
             get(urlEqualTo("/pipe/_status"))
                 .willReturn(aResponse()
                     .withStatus(status)
-                    .withBody("a response")
+                        .withBody(body)
                 )
         )
 
@@ -58,9 +58,43 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
         verify(exactly(3), getRequestedFor(urlEqualTo("/pipe/_status")))
 
         where:
-        status | _
-        500    | _
-        400    | _
+        status | body
+        500    | '{}'
+        500    | ''
+        500    | 'error body'
+        400    | '{}'
+        400    | ''
+        400    | 'error body'
+    }
+
+    @Unroll
+    def "sets flag isUp to false when the service is down with 200 status"() {
+        given:
+        def pipeServiceInstance = new PipeServiceInstance(new DefaultHttpClient(), new URL(wireMockRule.baseUrl()))
+
+        and:
+        stubFor(
+            get(urlEqualTo("/pipe/_status"))
+                .willReturn(aResponse()
+                    .withStatus(status)
+                        .withBody(body)
+                )
+        )
+
+        when:
+        pipeServiceInstance.updateState().blockingGet()
+
+        then:
+        !pipeServiceInstance.isUp()
+
+        and:
+        verify(exactly(3), getRequestedFor(urlEqualTo("/pipe/_status")))
+
+        where:
+        status | body
+        200    | '{}'
+        200    | '{"status": "ok","version": "0.0.0"}'
+        200    | '{"status": "ok"}'
     }
 
     @Unroll
@@ -71,17 +105,17 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
         and:
         stubFor(get(urlEqualTo("/pipe/_status")).inScenario("healthcheck")
                 .whenScenarioStateIs(Scenario.STARTED)
-                .willReturn(aResponse().withStatus(responseFirstCall).withBody("a response"))
+                .willReturn(aResponse().withStatus(responseFirstCall).withBody(bodyFirst))
                 .willSetStateTo("second_call"))
 
         stubFor(get(urlEqualTo("/pipe/_status")).inScenario("healthcheck")
                 .whenScenarioStateIs("second_call")
-                .willReturn(aResponse().withStatus(responseSecondCall).withBody("a response"))
+                .willReturn(aResponse().withStatus(responseSecondCall).withBody(bodySecond))
                 .willSetStateTo("third_call"))
 
         stubFor(get(urlEqualTo("/pipe/_status")).inScenario("healthcheck")
                 .whenScenarioStateIs("third_call")
-                .willReturn(aResponse().withStatus(responseThirdCall).withBody("a response")))
+                .willReturn(aResponse().withStatus(responseThirdCall).withBody(bodyThird)))
 
         when:
         pipeServiceInstance.updateState().blockingGet()
@@ -93,9 +127,9 @@ class PipeServiceInstanceIntegrationSpec extends Specification {
         verify(exactly(mockInvocationCount), getRequestedFor(urlEqualTo("/pipe/_status")))
 
         where:
-        responseFirstCall | responseSecondCall | responseThirdCall | mockInvocationCount
-        200               | 200                | 200               | 1
-        500               | 200                | 200               | 2
-        500               | 500                | 200               | 3
+        responseFirstCall | responseSecondCall | responseThirdCall | mockInvocationCount | bodyFirst                               | bodySecond                              | bodyThird
+        200               | 200                | 200               | 1                   | '{"status": "ok","version": "0.1.377"}' | '{"status": "ok","version": "0.1.377"}' | '{"status": "ok","version": "0.1.377"}'
+        500               | 200                | 200               | 2                   | '{}'                                    | '{"status": "ok","version": "0.1.377"}' | '{"status": "ok","version": "0.1.377"}'
+        500               | 500                | 200               | 3                   | '{}'                                    | '{}'                                    | '{"status": "ok","version": "0.1.377"}'
     }
 }
