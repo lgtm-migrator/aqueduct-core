@@ -55,11 +55,11 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
         centralStorageMock.read(_, _, _) >> new MessageResults([], 0, OptionalLong.of(1), PipeState.UP_TO_DATE)
 
         context = ApplicationContext
-            .builder()
-            .mainClass(EmbeddedServer)
-            .properties(
-                parseYamlConfig(
-                    """
+                .builder()
+                .mainClass(EmbeddedServer)
+                .properties(
+                        parseYamlConfig(
+                                """
                 micronaut.security.enabled: true
                 micronaut.security.token.jwt.enabled: true
                 micronaut.security.token.jwt.bearer.enabled: true
@@ -90,14 +90,14 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
                         roles:
                           - NOT_A_REAL_ROLE
                 """
+                        )
                 )
-            )
-        .build()
-        .registerSingleton(Reader, centralStorageMock, Qualifiers.byName("local"))
-        .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("pipe"))
-        .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("registry"))
-        .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("compaction"))
-        .registerSingleton(locationResolver)
+                .build()
+                .registerSingleton(Reader, centralStorageMock, Qualifiers.byName("local"))
+                .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("pipe"))
+                .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("registry"))
+                .registerSingleton(DataSource, Mock(DataSource), Qualifiers.byName("compaction"))
+                .registerSingleton(locationResolver)
 
         context.start()
 
@@ -122,10 +122,10 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
 
         when: 'A secured URL is accessed with the identity token as Bearer'
         RestAssured.given()
-            .header("Authorization", "Bearer $identityToken")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.OK.code)
+                .header("Authorization", "Bearer $identityToken")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.OK.code)
 
         then: 'identity was called'
         identityMock.verify()
@@ -138,10 +138,10 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
 
         when: 'A secured URL is accessed with the identity token as Bearer'
         RestAssured.given()
-            .header("Authorization", "Bearer $identityToken")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.FORBIDDEN.code)
+                .header("Authorization", "Bearer $identityToken")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.FORBIDDEN.code)
 
         then: 'identity was called'
         identityMock.verify()
@@ -151,18 +151,18 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
         denySingleIdentityTokenValidationRequest()
         expect: 'A secured URL is accessed with the basic auth'
         RestAssured.given()
-            .header("Authorization", "Basic $encodedCredentials")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.OK.code)
+                .header("Authorization", "Basic $encodedCredentials")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.OK.code)
     }
 
     def "Client receives unauthorised if no identity token provided."() {
         expect: 'Accessing a secured URL without authenticating'
         RestAssured.given()
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.UNAUTHORIZED.code)
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.code)
     }
 
     def 'Returns unauthorised when using an invalid identity token'() {
@@ -172,10 +172,10 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
         when: 'A secured URL is accessed with the identity token as Bearer'
         def identityToken = UUID.randomUUID().toString()
         RestAssured.given()
-            .header("Authorization", "Bearer $identityToken")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.UNAUTHORIZED.code)
+                .header("Authorization", "Bearer $identityToken")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.code)
 
         then: 'identity was called'
         identityMock.verify()
@@ -189,10 +189,10 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
         def incorrectEncodedCredentials = "incorrectUser:incorrectPassword".bytes.encodeBase64().toString()
 
         RestAssured.given()
-            .header("Authorization", "Basic $incorrectEncodedCredentials")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.UNAUTHORIZED.code)
+                .header("Authorization", "Basic $incorrectEncodedCredentials")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.UNAUTHORIZED.code)
     }
 
     def "Token validation requests are cached for the duration specified in the config"() {
@@ -227,10 +227,10 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
 
         when: 'A secured URL is accessed with the identity token as Bearer'
         RestAssured.given()
-            .header("Authorization", "Bearer $identityToken")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(statusCode)
+                .header("Authorization", "Bearer $identityToken")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(statusCode)
 
         then: 'identity was called'
         identityMock.verify()
@@ -276,6 +276,36 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
                             {
                               "claimType": "http://schemas.microsoft.com/ws/2008/06/identity/claims/expiration",
                               "value": "1548413702"
+                            },
+                            {
+                              "claimType": "http://schemas.tesco.com/ws/2018/05/identity/claims/formeruserkeys",
+                              "values": [
+                                {
+                                    "uuid": "trn:tesco:uid:uuid:${UUID.randomUUID()}"
+                                },
+                                {
+                                    "uuid": "trn:tesco:uid:uuid:${UUID.randomUUID()}"
+                                },
+                                {
+                                    "uuid": "trn:tesco:uid:uuid:${UUID.randomUUID()}"
+                                },
+                                {
+                                    "uuid": "trn:tesco:uid:uuid:${UUID.randomUUID()}"
+                                }
+                              ]
+                            },
+                            {
+                              "claimType": "http://schemas.tesco.com/ws/2011/12/identity/claims/merged",
+                              "values": [
+                                {
+                                    "uuidType": "OnlineUuid",
+                                    "uuid": "trn:tesco:uid:uuid:${UUID.randomUUID()}"
+                                },
+                                {
+                                    "uuidType": "ClubcardUuid",
+                                    "uuid": "trn:tesco:uid:uuid:${UUID.randomUUID()}"
+                                }
+                              ]
                             }
                           ]
                         }
@@ -308,9 +338,9 @@ class IdentityTokenValidatorIntegrationSpec extends Specification {
 
     def makeValidRequest(String identityToken) {
         RestAssured.given()
-            .header("Authorization", "Bearer $identityToken")
-            .get("/pipe/0?location=someLocation")
-            .then()
-            .statusCode(HttpStatus.OK.code)
+                .header("Authorization", "Bearer $identityToken")
+                .get("/pipe/0?location=someLocation")
+                .then()
+                .statusCode(HttpStatus.OK.code)
     }
 }
