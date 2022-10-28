@@ -401,6 +401,60 @@ class SQLiteStorageSpec extends Specification {
         !result
     }
 
+    def "integrity check returns false if result is not OK"() {
+        given: "mocked datasource"
+        dataSource = Mock(DataSource)
+        def connection = Mock(Connection)
+        dataSource.getConnection() >> connection
+
+        and: "a mocked prepared statement"
+        def preparedStatement = Mock(PreparedStatement)
+        connection.prepareStatement(*_) >> preparedStatement
+
+        and: "an SQLite storage"
+        sqliteStorage = new SQLiteStorage(dataSource, LIMIT, 10, BATCH_SIZE)
+
+        and: "an 'ok' result"
+        connection.prepareStatement(SQLiteQueries.QUICK_INTEGRITY_CHECK) >> preparedStatement
+        def resultSet = Mock(ResultSet)
+        preparedStatement.executeQuery() >> resultSet
+        resultSet.getString(1) >> "NOT_OK"
+
+        when: "run integrity check"
+        def result = sqliteStorage.runVisibilityCheck();
+
+        then:
+        sqliteStorage.isIntegrityCheckPassed(connection)==false
+        !result
+    }
+
+    def "integrity check returns true if result is not OK"() {
+        given: "mocked datasource"
+        dataSource = Mock(DataSource)
+        def connection = Mock(Connection)
+        dataSource.getConnection() >> connection
+
+        and: "a mocked prepared statement"
+        def preparedStatement = Mock(PreparedStatement)
+        connection.prepareStatement(*_) >> preparedStatement
+
+        and: "an SQLite storage"
+        sqliteStorage = new SQLiteStorage(dataSource, LIMIT, 10, BATCH_SIZE)
+
+        and: "an 'ok' result"
+        connection.prepareStatement(SQLiteQueries.QUICK_INTEGRITY_CHECK) >> preparedStatement
+        def resultSet = Mock(ResultSet)
+        preparedStatement.executeQuery() >> resultSet
+        resultSet.getString(1) >> "Ok"
+
+        when: "run integrity check"
+        def result = sqliteStorage.runVisibilityCheck();
+
+        then:
+        sqliteStorage.isIntegrityCheckPassed(connection)==true
+        result
+    }
+
     def "full integrity should rethrow RuntimeException on SQLException"() {
         given: "mocked datasource"
         dataSource = Mock(DataSource)

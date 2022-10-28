@@ -16,6 +16,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.tesco.aqueduct.pipe.api.OffsetName.GLOBAL_LATEST_OFFSET;
 import static com.tesco.aqueduct.pipe.storage.sqlite.SQLiteQueries.maxOffsetForConsumersQuery;
@@ -204,19 +205,36 @@ public class SQLiteStorage implements DistributedStorage {
     @Override
     public void runVisibilityCheck() {
         execute(connection -> {
-            try (PreparedStatement statement = connection.prepareStatement(SQLiteQueries.QUICK_INTEGRITY_CHECK);
-                 ResultSet resultSet = statement.executeQuery()) {
-
-                String result = resultSet.getString(1);
-
-                if (!"ok".equals(result)) {
-                    LOG.error("integrity check", "integrity check failed", result);
+                if (!isIntegrityCheckPassed(connection)) {
                     reindex(connection);
+                    if(isIntegrityCheckPassed(connection))
+                    {
+                        LOG.info("integrity check", "integrity check passed after rebuild");
+                    }
+                    else {
+                        LOG.info("integrity check", "integrity check failed after rebuild");
+                    }
+                    return false;
                 }
-
                 return true;
             }
-        });
+        );
+    }
+
+    public boolean  isIntegrityCheckPassed(Connection connection) {
+        try (PreparedStatement statement = connection.prepareStatement(SQLiteQueries.QUICK_INTEGRITY_CHECK);
+             ResultSet resultSet = statement.executeQuery()) {
+             String result = resultSet.getString(1);
+             if (!"ok".equals(result)) {
+                    LOG.error("integrity check", "integrity check failed", result);
+                    return false;
+             }
+             return true;
+            }
+            catch (SQLException e)
+            {
+                throw new RuntimeException(e);
+            }
     }
 
     @Override
@@ -301,7 +319,7 @@ public class SQLiteStorage implements DistributedStorage {
             LOG.error("execute", "failed to execute SQLite query", exception);
 
             if (SQLiteErrorCode.SQLITE_CORRUPT.equals(exception.getResultCode())) {
-                corrupt = true;
+                dbCorrupted();
             }
 
             throw new RuntimeException(exception);
@@ -309,6 +327,11 @@ public class SQLiteStorage implements DistributedStorage {
             LOG.error("execute", "failed to execute SQLite query", exception);
             throw new RuntimeException(exception);
         }
+    }
+
+    private void dbCorrupted()
+    {
+        corrupt=true;
     }
 
     private List<Message> getMessages(Connection connection, List<String> types, long offset) throws SQLException {
