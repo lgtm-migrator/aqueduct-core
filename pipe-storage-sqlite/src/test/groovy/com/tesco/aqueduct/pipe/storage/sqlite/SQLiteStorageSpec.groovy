@@ -421,11 +421,10 @@ class SQLiteStorageSpec extends Specification {
         resultSet.getString(1) >> "NOT_OK"
 
         when: "run integrity check"
-        def result = sqliteStorage.runVisibilityCheck();
+        sqliteStorage.runVisibilityCheck();
 
         then:
         sqliteStorage.isIntegrityCheckPassed(connection)==false
-        !result
     }
 
     def "integrity check returns true if result is not OK"() {
@@ -445,14 +444,14 @@ class SQLiteStorageSpec extends Specification {
         connection.prepareStatement(SQLiteQueries.QUICK_INTEGRITY_CHECK) >> preparedStatement
         def resultSet = Mock(ResultSet)
         preparedStatement.executeQuery() >> resultSet
-        resultSet.getString(1) >> "Ok"
+        resultSet.getString(1) >> "ok"
 
         when: "run integrity check"
-        def result = sqliteStorage.runVisibilityCheck();
+        sqliteStorage.runVisibilityCheck();
 
         then:
         sqliteStorage.isIntegrityCheckPassed(connection)==true
-        result
+  
     }
 
     def "full integrity should rethrow RuntimeException on SQLException"() {
