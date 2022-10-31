@@ -1,4 +1,4 @@
-package com.tesco.aqueduct.registry.model;
+/*package com.tesco.aqueduct.registry.model;
 
 import com.beust.jcommander.internal.Lists;
 import org.apache.groovy.util.Maps;
@@ -85,4 +85,4 @@ public class UpsertBenchmark {
         state.nodeGroup.upsert(state.node3, state.cloud);
     }
 
-}
+}*/

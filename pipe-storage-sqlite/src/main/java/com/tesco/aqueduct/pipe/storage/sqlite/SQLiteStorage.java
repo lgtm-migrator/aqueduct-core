@@ -221,7 +221,7 @@ public class SQLiteStorage implements DistributedStorage {
         );
     }
 
-    public boolean  isIntegrityCheckPassed(Connection connection) {
+    public boolean  isIntegrityCheckPassed(Connection connection) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(SQLiteQueries.QUICK_INTEGRITY_CHECK);
              ResultSet resultSet = statement.executeQuery()) {
              String result = resultSet.getString(1);
@@ -230,10 +230,6 @@ public class SQLiteStorage implements DistributedStorage {
                     return false;
              }
              return true;
-            }
-            catch (SQLException e)
-            {
-                throw new RuntimeException(e);
             }
     }
 
