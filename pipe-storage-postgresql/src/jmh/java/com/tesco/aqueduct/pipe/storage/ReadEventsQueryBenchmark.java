@@ -1,5 +1,5 @@
 
-/*package com.tesco.aqueduct.pipe.storage;
+package com.tesco.aqueduct.pipe.storage;
 
 import com.opentable.db.postgres.embedded.EmbeddedPostgres;
 import com.tesco.aqueduct.pipe.api.Message;
@@ -242,4 +242,4 @@ public class ReadEventsQueryBenchmark {
             "  ]\n" +
             "}";
 
-}*/
+}
