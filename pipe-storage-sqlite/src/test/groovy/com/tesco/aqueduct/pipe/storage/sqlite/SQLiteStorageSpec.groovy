@@ -349,6 +349,52 @@ class SQLiteStorageSpec extends Specification {
         1 * connection.rollback()
     }
 
+    def "is data base corrupted returns false if result is not OK"() {
+        given: "mocked datasource"
+        dataSource = Mock(DataSource)
+        def connection = Mock(Connection)
+        dataSource.getConnection() >> connection
+
+        and: "a mocked prepared statement"
+        def preparedStatement = Mock(PreparedStatement)
+        connection.prepareStatement(*_) >> preparedStatement
+
+        and: "an 'ok' result"
+        connection.prepareStatement(SQLiteQueries.FULL_INTEGRITY_CHECK) >> preparedStatement
+        def resultSet = Mock(ResultSet)
+        preparedStatement.executeQuery() >> resultSet
+        resultSet.getString(1) >> "NOT_OK"
+
+        when: "run full integrity check"
+        def result = SQLiteStorage.isDBCorrupted(dataSource);
+
+        then:
+        !result
+    }
+
+    def "is data base corrupted returns true if result is  OK"() {
+        given: "mocked datasource"
+        dataSource = Mock(DataSource)
+        def connection = Mock(Connection)
+        dataSource.getConnection() >> connection
+
+        and: "a mocked prepared statement"
+        def preparedStatement = Mock(PreparedStatement)
+        connection.prepareStatement(*_) >> preparedStatement
+
+        and: "an 'ok' result"
+        connection.prepareStatement(SQLiteQueries.FULL_INTEGRITY_CHECK) >> preparedStatement
+        def resultSet = Mock(ResultSet)
+        preparedStatement.executeQuery() >> resultSet
+        resultSet.getString(1) >> "ok"
+
+        when: "run full integrity check"
+        def result = SQLiteStorage.isDBCorrupted(dataSource);
+
+        then:
+        result
+    }
+
     def "full integrity check returns true if result is OK"() {
         given: "mocked datasource"
         dataSource = Mock(DataSource)
@@ -424,7 +470,7 @@ class SQLiteStorageSpec extends Specification {
         sqliteStorage.runVisibilityCheck();
 
         then:
-        sqliteStorage.isIntegrityCheckPassed(connection)==false
+        sqliteStorage.isIntegrityCheckPassed(connection) == false
     }
 
     def "integrity check returns true if result is not OK"() {

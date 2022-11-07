@@ -16,7 +16,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.OptionalLong;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.tesco.aqueduct.pipe.api.OffsetName.GLOBAL_LATEST_OFFSET;
 import static com.tesco.aqueduct.pipe.storage.sqlite.SQLiteQueries.maxOffsetForConsumersQuery;
@@ -43,12 +42,12 @@ public class SQLiteStorage implements DistributedStorage {
         this.limit = limit;
         this.retryAfterMs = retryAfterMs;
         this.maxBatchSize = maxBatchSize + (((long) Message.MAX_OVERHEAD_SIZE) * limit);
-
         createEventTableIfNotExists();
         createOffsetTableIfNotExists();
         createPipeStateTableIfNotExists();
         dropIndexOnTypes();
     }
+
 
     private void createEventTableIfNotExists() {
         execute(connection -> {
@@ -213,6 +212,7 @@ public class SQLiteStorage implements DistributedStorage {
                     }
                     else {
                         LOG.info("integrity check", "integrity check failed after rebuild");
+                        corrupt=true;
                     }
                     return false;
                 }
@@ -272,6 +272,27 @@ public class SQLiteStorage implements DistributedStorage {
         });
     }
 
+    public static boolean isDBCorrupted(final DataSource dataSoruce) {
+
+            try (Connection connection= dataSoruce.getConnection();PreparedStatement statement = connection.prepareStatement(SQLiteQueries.FULL_INTEGRITY_CHECK);
+                 ResultSet resultSet = statement.executeQuery()) {
+                String result = resultSet.getString(1);
+                if (!result.equals("ok")) {
+                    LOG.error("full integrity check", "full integrity check failed", result);
+                    return false;
+                }
+                return true;
+            } catch (SQLiteException exception ) {
+                if (SQLiteErrorCode.SQLITE_CORRUPT.equals(exception.getResultCode())) {
+                    return false;
+                }
+                throw new RuntimeException(exception);
+            }
+            catch (SQLException exception ) {
+                throw new RuntimeException(exception);
+            }
+    }
+
     public boolean runFullIntegrityCheck() {
         if (corrupt) return false;
 
@@ -302,6 +323,7 @@ public class SQLiteStorage implements DistributedStorage {
             final boolean compactDeletions
     ) {
         execute(connection -> {
+
             runCompactionInTransaction(compactionThreshold, deletionCompactionThreshold, connection, compactDeletions);
 
             return true;
