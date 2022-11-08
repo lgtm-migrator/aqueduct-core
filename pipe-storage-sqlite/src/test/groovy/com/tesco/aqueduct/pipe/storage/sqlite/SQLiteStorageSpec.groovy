@@ -349,7 +349,7 @@ class SQLiteStorageSpec extends Specification {
         1 * connection.rollback()
     }
 
-    def "is data base corrupted returns false if result is not OK"() {
+    def "is data base corrupted returns true if result is not OK"() {
         given: "mocked datasource"
         dataSource = Mock(DataSource)
         def connection = Mock(Connection)
@@ -369,10 +369,10 @@ class SQLiteStorageSpec extends Specification {
         def result = SQLiteStorage.isDBCorrupted(dataSource);
 
         then:
-        !result
+        result
     }
 
-    def "is data base corrupted returns true if result is  OK"() {
+    def "is data base corrupted returns false if result is  OK"() {
         given: "mocked datasource"
         dataSource = Mock(DataSource)
         def connection = Mock(Connection)
@@ -392,7 +392,7 @@ class SQLiteStorageSpec extends Specification {
         def result = SQLiteStorage.isDBCorrupted(dataSource);
 
         then:
-        result
+        !result
     }
 
     def "full integrity check returns true if result is OK"() {

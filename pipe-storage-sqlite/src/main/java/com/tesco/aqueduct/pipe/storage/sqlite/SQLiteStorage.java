@@ -279,12 +279,12 @@ public class SQLiteStorage implements DistributedStorage {
                 String result = resultSet.getString(1);
                 if (!result.equals("ok")) {
                     LOG.error("full integrity check", "full integrity check failed", result);
-                    return false;
+                    return true;
                 }
-                return true;
+                return false;
             } catch (SQLiteException exception ) {
                 if (SQLiteErrorCode.SQLITE_CORRUPT.equals(exception.getResultCode())) {
-                    return false;
+                    return true;
                 }
                 throw new RuntimeException(exception);
             }
