@@ -117,23 +117,26 @@ public class ServiceList {
         services = urls.stream()
             .map(this::getServiceInstance)
             .collect(Collectors.toList());
-        //This code is added handle envoy proxy backward compatibility to support both https and http pipe urls
-        if(services.contains(getCloudHttpsUrl())){
-            int index=services.indexOf(getCloudHttpsUrl());
-            if(index!=-1) {
-                services.remove(index);
-                services.add(this.cloudInstance);
-            }
+        //This code is added to handle envoy proxy backward compatibility to support both https and http pipe urls.
+        // This has to be removed after pipe url at publisher is upgraded to http
+        if(!services.contains(this.cloudInstance) && services.contains(flipCloudInstanceProtocal())){
+            int index=services.indexOf(flipCloudInstanceProtocal());
+            services.remove(index);
+            services.add(this.cloudInstance);
         }
         updateState();
     }
 
-    private PipeServiceInstance getCloudHttpsUrl()
+    private PipeServiceInstance flipCloudInstanceProtocal()
     {
         String httpUrl=this.cloudInstance.getUrl().toString();
         try {
             if (!httpUrl.startsWith("https")) {
                 URL httpsUrl = new URL(httpUrl.replaceFirst("^http", "https"));
+                return getServiceInstance(httpsUrl);
+            }
+            else if(!httpUrl.startsWith("http")) {
+                URL httpsUrl = new URL(httpUrl.replaceFirst("^https", "http"));
                 return getServiceInstance(httpsUrl);
             }
         }
