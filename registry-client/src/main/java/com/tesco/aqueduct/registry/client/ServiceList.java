@@ -142,7 +142,7 @@ public class ServiceList {
         }
         catch (Exception e)
         {
-            LOG.error("persist", "Unable to parse url",e);
+            LOG.error("persist", "Unable to parse url",e.getMessage());
         }
         return this.cloudInstance;
     }
