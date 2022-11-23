@@ -135,7 +135,7 @@ public class ServiceList {
                 URL httpsUrl = new URL(httpUrl.replaceFirst("^http", "https"));
                 return getServiceInstance(httpsUrl);
             }
-            else if(!httpUrl.startsWith("http")) {
+            else if(httpUrl.startsWith("https")) {
                 URL httpsUrl = new URL(httpUrl.replaceFirst("^https", "http"));
                 return getServiceInstance(httpsUrl);
             }
