@@ -52,6 +52,44 @@ class ServiceListSpec extends Specification {
         serviceList.stream().map({ p -> p.getUrl()}).collect() == list
     }
 
+    def "envoy proxy backward compatibility if the publisher pipe url is https and provider pipe url is http "() {
+        given: "a service list"
+        URL PROVIDER_PIPE_URL = URL("http://a1")
+        URL PUBLISHER_PIPE_URL = URL("https://a1")
+
+        PipeServiceInstance cloudServiceInstance = new PipeServiceInstance(new DefaultHttpClient(), PROVIDER_PIPE_URL)
+        ServiceList serviceList = new ServiceList(new DefaultHttpClient(), cloudServiceInstance, existingPropertiesFile)
+
+        and: "the service list has been updated before"
+        serviceList.update([URL_2,PUBLISHER_PIPE_URL])
+
+        when: "service list is updated with a new list"
+        def list = [URL_2,PROVIDER_PIPE_URL]
+        serviceList.update(list)
+
+        then: "list returned matches updated list"
+        serviceList.stream().map({ p -> p.getUrl()}).collect() == list
+    }
+
+    def "envoy proxy backward compatibility if the publisher pipe url is http and provider pipe url is http "() {
+        given: "a service list"
+        URL PROVIDER_PIPE_URL = URL("https://a1")
+        URL PUBLISHER_PIPE_URL = URL("https://a1")
+
+        PipeServiceInstance cloudServiceInstance = new PipeServiceInstance(new DefaultHttpClient(), PROVIDER_PIPE_URL)
+        ServiceList serviceList = new ServiceList(new DefaultHttpClient(), cloudServiceInstance, existingPropertiesFile)
+
+        and: "the service list has been updated before"
+        serviceList.update([URL_2,PUBLISHER_PIPE_URL])
+
+        when: "service list is updated with a new list"
+        def list = [URL_2,PROVIDER_PIPE_URL]
+        serviceList.update(list)
+
+        then: "list returned matches updated list"
+        serviceList.stream().map({ p -> p.getUrl()}).collect() == list
+    }
+
     def "when services are updated, previous services keep their status"() {
         given: "a service list"
         ServiceList serviceList = new ServiceList(new DefaultHttpClient(), serviceInstance, existingPropertiesFile) {

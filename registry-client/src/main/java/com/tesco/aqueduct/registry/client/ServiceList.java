@@ -117,8 +117,33 @@ public class ServiceList {
         services = urls.stream()
             .map(this::getServiceInstance)
             .collect(Collectors.toList());
+        //This code is added handle envoy proxy backward compatibility to support both https and http pipe urls
+        if(services.contains(getCloudHttpsUrl())){
+            int index=services.indexOf(getCloudHttpsUrl());
+            if(index!=-1) {
+                services.remove(index);
+                services.add(this.cloudInstance);
+            }
+        }
         updateState();
     }
+
+    private PipeServiceInstance getCloudHttpsUrl()
+    {
+        String httpUrl=this.cloudInstance.getUrl().toString();
+        try {
+            if (!httpUrl.startsWith("https")) {
+                URL httpsUrl = new URL(httpUrl.replaceFirst("^http", "https"));
+                return getServiceInstance(httpsUrl);
+            }
+        }
+        catch (Exception e)
+        {
+            LOG.error("persist", "Unable to parse url",e);
+        }
+        return this.cloudInstance;
+    }
+
 
     private void defaultToCloud() {
         LOG.info("ServiceList.defaultToCloud", "Defaulting to follow the Cloud Pipe server.");
