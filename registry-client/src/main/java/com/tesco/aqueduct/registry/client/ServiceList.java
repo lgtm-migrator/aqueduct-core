@@ -114,38 +114,32 @@ public class ServiceList {
             defaultToCloud();
             return;
         }
-        services = urls.stream()
+        services = urls.stream().map(url-> url.equals(flipCloudInstanceProtocal())?cloudInstance.getUrl():url)
             .map(this::getServiceInstance)
             .collect(Collectors.toList());
-        //This code is added to handle envoy proxy backward compatibility to support both https and http pipe urls.
-        // This has to be removed after pipe url at publisher is upgraded to http
-        if(!services.contains(this.cloudInstance) && services.contains(flipCloudInstanceProtocal())){
-            int index=services.indexOf(flipCloudInstanceProtocal());
-            services.remove(index);
-            services.add(this.cloudInstance);
-        }
         updateState();
     }
 
-    private PipeServiceInstance flipCloudInstanceProtocal()
+    private URL flipCloudInstanceProtocal()
     {
+        //This code is added to handle envoy proxy backward compatibility to support both https and http pipe urls.
+        // This has to be removed after pipe url at publisher is upgraded to http
         String httpUrl=this.cloudInstance.getUrl().toString();
         try {
             if (!httpUrl.startsWith("https")) {
-                URL httpsUrl = new URL(httpUrl.replaceFirst("^http", "https"));
-                return getServiceInstance(httpsUrl);
+                return  new URL(httpUrl.replaceFirst("^http", "https"));
             }
             else if(httpUrl.startsWith("https")) {
-                URL httpsUrl = new URL(httpUrl.replaceFirst("^https", "http"));
-                return getServiceInstance(httpsUrl);
+                return new URL(httpUrl.replaceFirst("^https", "http"));
             }
         }
         catch (Exception e)
         {
             LOG.error("persist", "Unable to parse url",e.getMessage());
         }
-        return this.cloudInstance;
+        return this.cloudInstance.getUrl();
     }
+
 
 
     private void defaultToCloud() {

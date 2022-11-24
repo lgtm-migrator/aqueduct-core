@@ -99,22 +99,6 @@ public class PipeServiceInstance implements ServiceInstance {
         return UriBuilder.of(getURI()).path("/pipe/_status").build().toString();
     }
 
-    public boolean equals(Object instance)
-    {
-        if(instance==this)
-            return true;
-        if(instance == null || instance.getClass()!= this.getClass())
-            return false;
-        PipeServiceInstance target=(PipeServiceInstance)instance;
-        return url.equals(target.getUrl());
-    }
-
-    public int hashCode()
-    {
-        return url.hashCode();
-    }
-
-
     private URI getUriWithBasePath(final URI relativeURI) throws URISyntaxException {
         // replace() needed to make it compatible with the Windows file system
         final String path = Paths.get(url.getPath(), relativeURI.getPath()).toString().replace('\\', '/');
