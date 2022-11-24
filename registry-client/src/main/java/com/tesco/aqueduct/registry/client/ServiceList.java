@@ -53,6 +53,8 @@ public class ServiceList {
 
     private List<URL> readUrls(Properties properties) {
         String urls = properties.getProperty("services", "");
+        if(urls.isEmpty())
+            return null;
         return Arrays.stream(urls.split(","))
             .map(this::toUrl)
             .filter(Objects::nonNull)

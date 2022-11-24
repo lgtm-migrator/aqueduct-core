@@ -45,6 +45,7 @@ class RegistryToServiceListIntegrationSpec extends Specification {
     ApplicationContext context
     SelfRegistrationTask selfRegistrationTask
     PipeLoadBalancerHealthCheckTask pipeLoadBalancerHealthCheckTask
+    ServiceList serviceList
 
     def setupSpec() {
         cloudServer.start()
@@ -61,6 +62,9 @@ class RegistryToServiceListIntegrationSpec extends Specification {
                 }
             }
         }
+        serviceList =new ServiceList(
+                new DefaultHttpClient(),
+                new PipeServiceInstance(new DefaultHttpClient(), flipCloudInstanceProtocal(cloudServer.getHttpUrl())), File.createTempFile("provider", "properties"));
 
         context = ApplicationContext
             .builder()
@@ -78,11 +82,7 @@ class RegistryToServiceListIntegrationSpec extends Specification {
             .build()
             .registerSingleton(tokenProvider)
             .registerSingleton(summarySupplier)
-            .registerSingleton(new ServiceList(
-                new DefaultHttpClient(),
-                new PipeServiceInstance(new DefaultHttpClient(), new URL(cloudServer.getHttpUrl())),
-                File.createTempFile("provider", "properties")
-            ))
+            .registerSingleton(serviceList)
             .registerSingleton(Bootstrapable.class, Mock(Bootstrapable), Qualifiers.byName("provider"))
             .registerSingleton(Bootstrapable.class, Mock(Bootstrapable), Qualifiers.byName("pipe"))
             .registerSingleton(Bootstrapable.class, Mock(Bootstrapable), Qualifiers.byName("controller"))
@@ -96,13 +96,16 @@ class RegistryToServiceListIntegrationSpec extends Specification {
     def "given a new service host by registry, the till starts to follow that"() {
         given: "registry server which returns the new service host"
         def serviceURL = serviceServer.getHttpUrl()
+        def cloudSeverUrl = cloudServer.getHttpUrl()
+
+
         cloudServer.expectations {
             POST("/v2/registry") {
                 header("Accept-Encoding", "gzip, deflate")
 
                 responder {
                     contentType("application/json")
-                    body("""{"requestedToFollow" : [ "$serviceURL" ], "bootstrapType" : "NONE"}""")
+                    body("""{"requestedToFollow" : [ "$serviceURL","$cloudSeverUrl" ], "bootstrapType" : "NONE"}""")
                 }
             }
         }
@@ -126,5 +129,58 @@ class RegistryToServiceListIntegrationSpec extends Specification {
 
         then: "the new service health check is called"
         serviceServer.verify()
+    }
+
+    def "given a new service host by registry, the till starts to follow cloud url specified at provider"() {
+        given: "registry server which returns the new service host"
+        def serviceURL = serviceServer.getHttpUrl()
+        def cloudSeverUrl = cloudServer.getHttpUrl()
+
+        cloudServer.expectations {
+            POST("/v2/registry") {
+                header("Accept-Encoding", "gzip, deflate")
+
+                responder {
+                    contentType("application/json")
+                    body("""{"requestedToFollow" : [ "$serviceURL","$cloudSeverUrl" ], "bootstrapType" : "NONE"}""")
+                }
+            }
+        }
+        and: "service host is healthy"
+        serviceServer.expectations {
+            GET("/pipe/_status") {
+                called(greaterThanOrEqualTo(1))
+
+                responder {
+                    contentType('application/json')
+                    body('{"status": "ok","version": "0.1.377"}')
+                    code(200)
+                }
+            }
+        }
+
+        when: "SelfRegistrationTask calls registry"
+        selfRegistrationTask.register()
+        and : "service list is updated with a new list"
+        def list = [new URL(serviceURL),flipCloudInstanceProtocal(cloudSeverUrl)]
+
+        then: "list returned matches updated list"
+        serviceList.stream().map({ p -> p.getUrl()}).collect() == list
+    }
+
+    private URL flipCloudInstanceProtocal(String httpUrl)
+    {
+        try {
+            if (!httpUrl.startsWith("https")) {
+                return  new URL(httpUrl.replaceFirst("^http", "https"));
+            }
+            else if(httpUrl.startsWith("https")) {
+                return new URL(httpUrl.replaceFirst("^https", "http"));
+            }
+        }
+        catch (Exception e)
+        {
+        }
+        return new URL(httpUrl);
     }
 }
